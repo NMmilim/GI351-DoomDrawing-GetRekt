@@ -13,7 +13,7 @@ public class PlayerController : MonoBehaviour
         Dead
     }
 
-    [Header("Player")]
+    [Header("Health")]
     [SerializeField] private int maxHealth = 3;
 
     [Header("Parry")]
@@ -36,6 +36,7 @@ public class PlayerController : MonoBehaviour
         if (Keyboard.current == null)
             return;
 
+        // Don't allow input after death
         if (currentState == PlayerState.Dead)
             return;
 
@@ -61,7 +62,6 @@ public class PlayerController : MonoBehaviour
     private void StartGuard()
     {
         currentState = PlayerState.Guard;
-
         parryTimer = 0f;
 
         Debug.Log("GUARD - HOLD");
@@ -74,7 +74,6 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log("RELEASE");
 
-        // For now, holding for the correct amount of time = Perfect Parry
         if (parryTimer >= perfectParryWindow)
         {
             PerfectParry();
@@ -105,27 +104,27 @@ public class PlayerController : MonoBehaviour
             attackingEnemy.TakeDamage(parryDamage);
 
             Debug.Log("COUNTER ATTACK!");
+
+            attackingEnemy = null;
         }
 
         currentState = PlayerState.Idle;
-        attackingEnemy = null;
     }
 
     public void SetAttackingEnemy(EnemyController enemy)
     {
         attackingEnemy = enemy;
-
-        Debug.Log("Enemy is attacking!");
     }
 
     public void TakeDamage(int damage)
     {
+        // Can't take damage after death
         if (currentState == PlayerState.Dead)
             return;
 
         currentHealth -= damage;
 
-        Debug.Log("Player HP: " + currentHealth);
+        Debug.Log("PLAYER HP: " + currentHealth);
 
         if (currentHealth <= 0)
         {
@@ -134,15 +133,36 @@ public class PlayerController : MonoBehaviour
         else
         {
             currentState = PlayerState.Hit;
+
+            Debug.Log("PLAYER HIT!");
+
             currentState = PlayerState.Idle;
         }
     }
 
     private void Die()
     {
+        currentHealth = 0;
         currentState = PlayerState.Dead;
 
-        Debug.Log("PLAYER DEAD");
+        Debug.Log("PLAYER DEAD!");
+
+        // Stop player input
+        enabled = false;
+
+        // Optional: disable collider
+        Collider2D playerCollider = GetComponent<Collider2D>();
+
+        if (playerCollider != null)
+        {
+            playerCollider.enabled = false;
+        }
+        Destroy(gameObject);
+    }
+
+    public int GetHealth()
+    {
+        return currentHealth;
     }
 
     public PlayerState GetState()
