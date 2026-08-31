@@ -32,6 +32,10 @@ public class Enemy2 : MonoBehaviour
 
         if (animator == null)
             animator = GetComponent<Animator>();
+
+        // if Animator is on a child sprite object, try to find it there too
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
     }
 
     // Physics-friendly movement when Rigidbody2D is present
@@ -43,15 +47,16 @@ public class Enemy2 : MonoBehaviour
         {
             Vector2 current = rb2d.position;
             Vector2 playerPos = target.position;
-            float dist = Vector2.Distance(current, playerPos);
-            bool moving = dist > stopDistance;
+
+            // compute the next position first and decide moving based on actual change
+            Vector2 next = Vector2.MoveTowards(current, playerPos, speed * Time.fixedDeltaTime);
+            bool moving = (next - current).sqrMagnitude > 0.000001f && Vector2.Distance(current, playerPos) > stopDistance;
 
             if (animator != null)
                 animator.SetBool("IsMoving", moving);
 
             if (moving)
             {
-                Vector2 next = Vector2.MoveTowards(current, playerPos, speed * Time.fixedDeltaTime);
                 rb2d.MovePosition(next);
                 Prep = false;
             }
@@ -62,7 +67,7 @@ public class Enemy2 : MonoBehaviour
                     if (animator != null)
                     {
                         animator.SetBool("IsMoving", false);
-                        animator.SetTrigger("Prepare");
+                        animator.SetTrigger("Prep");
                     }
                     Prep = true;
                 }
@@ -75,7 +80,19 @@ public class Enemy2 : MonoBehaviour
     {
         if (rb2d != null) return; // handled in FixedUpdate
         if (target == null) return;
-        if (Vector3.Distance(transform.position, target.position) > stopDistance)
+        float dist = Vector3.Distance(transform.position, target.position);
+        bool moving = dist > stopDistance;
+
+        if (animator != null)
+            animator.SetBool("IsMoving", moving);
+
+        if (moving)
             transform.position = Vector3.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+        else if (!Prep)
+        {
+            if (animator != null)
+                animator.SetTrigger("Prep");
+            Prep = true;
+        }
     }
 }
