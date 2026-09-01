@@ -88,8 +88,9 @@ public class Enemy2 : MonoBehaviour
                     if (prepareTimer <= 0f)
                     {
                         isPreparing = false;
-                        // now fully prepared; Attack step will be added later
-                        // keep IsSwinging = true so enemy stays in lifted pose
+                        // now fully prepared: automatically trigger attack for testing
+                        TriggerAttack();
+                        // keep IsSwinging handled by TriggerAttack/Animator
                     }
                 }
             }
@@ -113,14 +114,32 @@ public class Enemy2 : MonoBehaviour
 
         if (moving)
             transform.position = Vector3.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
-        else if (!Prep)
+        else
         {
-            if (animator != null)
+            // start preparing (swing up) when stopped (transform fallback)
+            if (!Prep)
             {
-                animator.SetBool("IsMoving", false);
-                animator.SetBool("IsSwinging", true);
+                Prep = true;
+                isPreparing = true;
+                prepareTimer = prepareTime;
+                if (animator != null)
+                {
+                    animator.SetBool("IsMoving", false);
+                    animator.SetBool("IsSwinging", true);
+                }
             }
-            Prep = true;
+
+            // count down prepare time for transform path as well
+            if (isPreparing)
+            {
+                prepareTimer -= Time.deltaTime;
+                if (prepareTimer <= 0f)
+                {
+                    isPreparing = false;
+                    // now fully prepared: automatically trigger attack for testing
+                    TriggerAttack();
+                }
+            }
         }
     }
     void EnemAttack()

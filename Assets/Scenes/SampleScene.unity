@@ -245,7 +245,7 @@ MonoBehaviour:
   stopDistance: 0.7
   target: {fileID: 928616984}
   animator: {fileID: 172723241}
-  prepareTime: 0.8
+  prepareTime: 3
 --- !u!212 &172723246
 SpriteRenderer:
   serializedVersion: 2
