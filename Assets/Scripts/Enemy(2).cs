@@ -9,6 +9,9 @@ public class Enemy2 : MonoBehaviour
     private bool Prep = false;
     private Rigidbody2D rb2d;
     [SerializeField] private Animator animator;
+    public float prepareTime = 0.8f;
+    private float prepareTimer = 0f;
+    private bool isPreparing = false;
 
     void Start()
     {
@@ -59,17 +62,35 @@ public class Enemy2 : MonoBehaviour
             {
                 rb2d.MovePosition(next);
                 Prep = false;
+                // ensure swing pose is cleared while moving
+                if (animator != null)
+                    animator.SetBool("IsSwinging", false);
             }
             else
             {
+                // start preparing (swing up) when stopped
                 if (!Prep)
                 {
+                    Prep = true;
+                    isPreparing = true;
+                    prepareTimer = prepareTime;
                     if (animator != null)
                     {
                         animator.SetBool("IsMoving", false);
-                        animator.SetTrigger("Prep");
+                        animator.SetBool("IsSwinging", true); // lift weapon
                     }
-                    Prep = true;
+                }
+
+                // count down prepare time; when finished, remain in swing pose until next logic
+                if (isPreparing)
+                {
+                    prepareTimer -= Time.fixedDeltaTime;
+                    if (prepareTimer <= 0f)
+                    {
+                        isPreparing = false;
+                        // now fully prepared; Attack step will be added later
+                        // keep IsSwinging = true so enemy stays in lifted pose
+                    }
                 }
             }
         }
@@ -84,15 +105,26 @@ public class Enemy2 : MonoBehaviour
         bool moving = dist > stopDistance;
 
         if (animator != null)
+        {
             animator.SetBool("IsMoving", moving);
+            if (moving)
+                animator.SetBool("IsSwinging", false);
+        }
 
         if (moving)
             transform.position = Vector3.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
         else if (!Prep)
         {
             if (animator != null)
-                animator.SetTrigger("Prep");
+            {
+                animator.SetBool("IsMoving", false);
+                animator.SetBool("IsSwinging", true);
+            }
             Prep = true;
         }
+    }
+    void EnemAttack()
+    {
+        // Attack logic removed; enemy remains in swing (prep) state when in range.
     }
 }
