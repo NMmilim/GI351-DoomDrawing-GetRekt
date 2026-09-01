@@ -127,4 +127,27 @@ public class Enemy2 : MonoBehaviour
     {
         // Attack logic removed; enemy remains in swing (prep) state when in range.
     }
+
+    // Public entry for external systems (BeatManager, player code, etc.) to trigger the attack.
+    // Keeps enemy-side only: plays Attack animation and runs the strike timing (hitbox).
+    public void TriggerAttack()
+    {
+        if (animator != null)
+        {
+            // ensure swing pose (if not already) and trigger attack animation
+            animator.SetBool("IsSwinging", true);
+            animator.SetTrigger("Attack");
+        }
+
+        // stop preparing state and start strike coroutine
+        isPreparing = false;
+        Prep = false;
+
+        // set cooldown to avoid immediate retrigger from external code
+        // (external systems can ignore this if they want faster repeats)
+        // note: attackCooldown default is set in inspector
+        // start strike timing (enables hitbox after strikeDelay)
+        //StartStrike();
+        //attackCooldownTimer = attackCooldown;
+    }
 }
