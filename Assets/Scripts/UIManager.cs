@@ -9,6 +9,8 @@ public class UIManager : MonoBehaviour
     [Header("UI References")]
     public Text timerText;    // assign in inspector
     public Text killsText;    // assign in inspector
+    public Text gameOverText; // assign in inspector (disabled by default)
+    public Text healthText;   // assign in inspector (player HP)
 
     [Header("Timer")]
     public bool startOnPlay = true;
@@ -28,6 +30,10 @@ public class UIManager : MonoBehaviour
     {
         if (startOnPlay) StartTimer();
         UpdateUI();
+
+        // ensure game over text is hidden initially
+        if (gameOverText != null)
+            gameOverText.gameObject.SetActive(false);
     }
 
     void Update()
@@ -71,5 +77,24 @@ public class UIManager : MonoBehaviour
     {
         kills += amount;
         if (killsText != null) killsText.text = "Kills: " + kills.ToString();
+    }
+
+    // Show the "YOU LOSE" message and stop the timer
+    public void ShowLose()
+    {
+        if (gameOverText != null)
+        {
+            gameOverText.text = "YOU LOSE";
+            gameOverText.gameObject.SetActive(true);
+        }
+
+        StopTimer();
+    }
+
+    // Update the on-screen HP display
+    public void UpdateHealth(int current, int max)
+    {
+        if (healthText == null) return;
+        healthText.text = string.Format("HP: {0}/{1}", Mathf.Max(0, current), Mathf.Max(1, max));
     }
 }

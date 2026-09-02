@@ -306,8 +306,8 @@ public class Enemy2 : MonoBehaviour, IDamageable
     private void Die()
     {
         // simple death: play animation and destroy
-        if (animator != null)
-            animator.SetTrigger("Death");
+      //  if (animator != null)
+          //  animator.SetTrigger("Death");
         // disable collider and script
         var col = GetComponent<Collider2D>();
         if (col != null) col.enabled = false;

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
@@ -27,7 +28,14 @@ public class PlayerController : MonoBehaviour
     private int currentHealth;
     private PlayerState currentState = PlayerState.Idle;
 
-    private IDamageable attackingEnemy;
+    // incoming attack info recorded when hitbox collides while guarding
+    private bool incomingAttackRecorded = false;
+    private IDamageable incomingAttacker = null;
+    private int incomingDamage = 0;
+
+    // optional attacker set by enemy when it starts an attack (fallback)
+    private IDamageable attackingEnemyPending = null;
+
     private float parryTimer;
 
     private void Start()
@@ -40,6 +48,12 @@ public class PlayerController : MonoBehaviour
         }
 
         SetAnimationIdle();
+
+        // initialize UI health display
+        if (UIManager.Instance != null)
+            UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
+
+        Debug.Log($"[PlayerController] Start initialized currentHealth={currentHealth}");
     }
 
     private void Update()
@@ -47,8 +61,15 @@ public class PlayerController : MonoBehaviour
         if (Keyboard.current == null)
             return;
 
+        // Allow restart input when dead
         if (currentState == PlayerState.Dead)
+        {
+            if (Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                RestartGame();
+            }
             return;
+        }
 
         // SPACE DOWN
         if (Keyboard.current.spaceKey.wasPressedThisFrame)
@@ -72,7 +93,6 @@ public class PlayerController : MonoBehaviour
     // ==========================================
     // GUARD
     // ==========================================
-
     private void StartGuard()
     {
         currentState = PlayerState.Guard;
@@ -83,7 +103,10 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("IsGuarding", true);
         }
 
-        Debug.Log("GUARD - HOLD");
+        // reset any previous incoming-attack record when starting a fresh guard
+        ClearIncomingAttack();
+
+        Debug.Log("[PlayerController] GUARD - HOLD");
     }
 
     private void ReleaseGuard()
@@ -96,15 +119,16 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("IsGuarding", false);
         }
 
-        Debug.Log("RELEASE");
+        Debug.Log("[PlayerController] RELEASE");
 
-        // Temporary timing system
-        if (parryTimer >= perfectParryWindow)
+        // If player held for long enough AND there is a recorded incoming attack, it's a perfect parry
+        if (parryTimer >= perfectParryWindow && incomingAttackRecorded)
         {
             PerfectParry();
         }
         else
         {
+            // block: simply absorb the hit (no damage to player and no damage to enemy)
             Block();
         }
     }
@@ -112,7 +136,6 @@ public class PlayerController : MonoBehaviour
     // ==========================================
     // BLOCK
     // ==========================================
-
     private void Block()
     {
         currentState = PlayerState.Block;
@@ -122,7 +145,11 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Block");
         }
 
-        Debug.Log("BLOCK!");
+        Debug.Log("[PlayerController] BLOCK!");
+
+        // clear any recorded incoming attack and pending attacker so releasing later won't affect enemies
+        ClearIncomingAttack();
+        attackingEnemyPending = null;
 
         // Return to Idle after animation
         Invoke(nameof(SetAnimationIdle), 0.25f);
@@ -131,7 +158,6 @@ public class PlayerController : MonoBehaviour
     // ==========================================
     // PARRY
     // ==========================================
-
     private void PerfectParry()
     {
         currentState = PlayerState.Parry;
@@ -141,73 +167,89 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Parry");
         }
 
-        Debug.Log("PERFECT PARRY!");
+        Debug.Log("[PlayerController] PERFECT PARRY!");
 
-        if (attackingEnemy != null)
+        // choose attacker to damage: prefer the recorded incomingAttacker, fall back to pending attacker set by enemy
+        IDamageable attackerToDamage = incomingAttacker != null ? incomingAttacker : attackingEnemyPending;
+
+        if (attackerToDamage != null)
         {
-            attackingEnemy.TakeDamage(parryAttack);
-
-            Debug.Log("COUNTER ATTACK!");
-
-            attackingEnemy = null;
+            // safe-check the backing Unity object before calling TakeDamage
+            var enemyObject = attackerToDamage as UnityEngine.Object;
+            if (enemyObject != null)
+            {
+                attackerToDamage.TakeDamage(parryAttack);
+                Debug.Log("[PlayerController] COUNTER ATTACK!");
+            }
+            else
+            {
+                Debug.Log("[PlayerController] attacker missing/destroyed; skipping counter damage");
+            }
         }
+
+        // resolved: clear recorded incoming attack and pending attacker
+        ClearIncomingAttack();
+        attackingEnemyPending = null;
 
         // Return to Idle after animation
         Invoke(nameof(SetAnimationIdle), 0.35f);
     }
 
     // ==========================================
-    // ENEMY ATTACK
+    // EXTERNAL ATTACK REGISTRATION
     // ==========================================
-
+    // Called by enemies that want to advertise which enemy is attacking (optional).
+    // Enemy2 still calls this — keep it as a harmless setter so old code compiles.
     public void SetAttackingEnemy(IDamageable enemy)
     {
-        attackingEnemy = enemy;
+        // store as a fallback only; actual hitboxes should call OnIncomingAttack when they collide
+        attackingEnemyPending = enemy;
     }
 
+    // ==========================================
+    // INCOMING ATTACK RECORDING (called by hitbox)
+    // ==========================================
     // Called by enemies (or hitboxes) when an attack collides with the player.
-    // Returns true if the attack was handled (blocked or parried) and player should take no damage.
-    // If parried, the attacker will be damaged by parryAttack.
+    // Behavior:
+    // - If guarding: record the incoming attacker and damage and return true (attack handled now).
+    //   Actual parry damage is applied only on release if timing meets parry window.
+    // - If not guarding: return false (player should take damage).
     public bool OnIncomingAttack(int damage, IDamageable attacker, out bool wasParried)
     {
         wasParried = false;
+        Debug.Log($"[PlayerController] OnIncomingAttack called: state={currentState}, parryTimer={parryTimer:F3}, damage={damage}");
 
         if (currentState == PlayerState.Guard)
         {
-            // If the player has been holding long enough, treat as perfect parry
-            if (parryTimer >= perfectParryWindow)
-            {
-                wasParried = true;
-                // play parry animation
-                if (animator != null)
-                    animator.SetTrigger("Parry");
+            // Record incoming attack for resolution on release
+            incomingAttackRecorded = true;
+            incomingAttacker = attacker;
+            incomingDamage = damage;
 
-                // damage the attacker (parry attack)
-                if (attacker != null)
-                    attacker.TakeDamage(parryAttack);
+            // We don't apply damage now. If player releases with sufficient parryTimer we will parry.
+            // Play block animation immediately (visual feedback)
+            if (animator != null)
+                animator.SetTrigger("Block");
 
-                Debug.Log("PARried incoming attack");
-                return true; // attack handled
-            }
-            else
-            {
-                // block: simply absorb the hit (no damage to player)
-                if (animator != null)
-                    animator.SetTrigger("Block");
-
-                Debug.Log("Blocked incoming attack");
-                return true;
-            }
+            Debug.Log("[PlayerController] Incoming attack recorded while guarding (will resolve on release)");
+            return true; // attack handled (player won't take immediate damage)
         }
 
         // not guarding -> attack not handled, player should take damage
+        Debug.Log("[PlayerController] Attack not handled, will take damage");
         return false;
+    }
+
+    private void ClearIncomingAttack()
+    {
+        incomingAttackRecorded = false;
+        incomingAttacker = null;
+        incomingDamage = 0;
     }
 
     // ==========================================
     // DAMAGE
     // ==========================================
-
     public void TakeDamage(int damage)
     {
         if (currentState == PlayerState.Dead)
@@ -215,7 +257,11 @@ public class PlayerController : MonoBehaviour
 
         currentHealth -= damage;
 
-        Debug.Log("PLAYER HP: " + currentHealth);
+        Debug.Log($"[PlayerController] TakeDamage({damage}) -> currentHealth={currentHealth}");
+
+        // update UI
+        if (UIManager.Instance != null)
+            UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
 
         if (currentHealth <= 0)
         {
@@ -237,7 +283,7 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Hit");
         }
 
-        Debug.Log("PLAYER HIT!");
+        Debug.Log("[PlayerController] PLAYER HIT!");
 
         Invoke(nameof(SetAnimationIdle), 0.3f);
     }
@@ -245,7 +291,6 @@ public class PlayerController : MonoBehaviour
     // ==========================================
     // DEATH
     // ==========================================
-
     private void Die()
     {
         currentHealth = 0;
@@ -257,24 +302,37 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Death");
         }
 
-        Debug.Log("PLAYER DEAD!");
+        Debug.Log("[PlayerController] PLAYER DEAD!");
 
-        // Stop input
-        enabled = false;
-
-        // Disable collider
+        // Do not disable this component so we can detect restart input.
+        // Disable collider so player stops interacting with world.
         Collider2D playerCollider = GetComponent<Collider2D>();
 
         if (playerCollider != null)
         {
             playerCollider.enabled = false;
         }
+
+        // update UI to zero and show lose UI
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
+            UIManager.Instance.ShowLose();
+        }
+    }
+
+    // ==========================================
+    // RESTART
+    // ==========================================
+    private void RestartGame()
+    {
+        // simple reload of the active scene
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     // ==========================================
     // IDLE
     // ==========================================
-
     private void SetAnimationIdle()
     {
         if (currentState == PlayerState.Dead)
@@ -291,7 +349,6 @@ public class PlayerController : MonoBehaviour
     // ==========================================
     // GETTERS
     // ==========================================
-
     public int GetHealth()
     {
         return currentHealth;
