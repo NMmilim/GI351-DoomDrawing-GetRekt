@@ -12,6 +12,10 @@ public class Enemy2 : MonoBehaviour
     public float prepareTime = 0.8f;
     private float prepareTimer = 0f;
     private bool isPreparing = false;
+    private bool prepared = false; // ready to attack on next beat
+    private bool isAttacking = false;
+    public float attackDuration = 0.4f; // how long the attack state lasts before returning to idle
+    private bool beatSubscribed = false;
 
     void Start()
     {
@@ -39,6 +43,39 @@ public class Enemy2 : MonoBehaviour
         // if Animator is on a child sprite object, try to find it there too
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
+
+        // subscribe to beat events if BeatHit exists (or set up to subscribe later)
+        if (BeatHit.Instance != null)
+        {
+            BeatHit.Instance.OnBeat += OnBeat;
+            beatSubscribed = true;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (beatSubscribed && BeatHit.Instance != null)
+            BeatHit.Instance.OnBeat -= OnBeat;
+    }
+
+    // If BeatHit wasn't available at Start, subscribe as soon as it becomes available
+    void LateUpdate()
+    {
+        if (!beatSubscribed && BeatHit.Instance != null)
+        {
+            BeatHit.Instance.OnBeat += OnBeat;
+            beatSubscribed = true;
+        }
+    }
+
+    private void OnBeat(double dspTime, int beatIndex)
+    {
+        // if prepared and not currently attacking, trigger attack on beat
+        if (prepared && !isAttacking)
+        {
+            prepared = false;
+            TriggerAttack();
+        }
     }
 
     // Physics-friendly movement when Rigidbody2D is present
@@ -88,9 +125,9 @@ public class Enemy2 : MonoBehaviour
                     if (prepareTimer <= 0f)
                     {
                         isPreparing = false;
-                        // now fully prepared: automatically trigger attack for testing
-                        TriggerAttack();
-                        // keep IsSwinging handled by TriggerAttack/Animator
+                        // now fully prepared: wait for beat to trigger attack
+                        prepared = true;
+                        // keep IsSwinging = true so enemy stays in lifted pose
                     }
                 }
             }
@@ -136,8 +173,8 @@ public class Enemy2 : MonoBehaviour
                 if (prepareTimer <= 0f)
                 {
                     isPreparing = false;
-                    // now fully prepared: automatically trigger attack for testing
-                    TriggerAttack();
+                    // now fully prepared: wait for beat to trigger attack
+                    prepared = true;
                 }
             }
         }
@@ -151,6 +188,9 @@ public class Enemy2 : MonoBehaviour
     // Keeps enemy-side only: plays Attack animation and runs the strike timing (hitbox).
     public void TriggerAttack()
     {
+        if (isAttacking) return; // ignore if already attacking
+        isAttacking = true;
+
         if (animator != null)
         {
             // ensure swing pose (if not already) and trigger attack animation
@@ -162,11 +202,24 @@ public class Enemy2 : MonoBehaviour
         isPreparing = false;
         Prep = false;
 
+        // clear attacking flag after attackDuration and return to idle pose
+        StartCoroutine(ClearAttackAfter(attackDuration));
+
         // set cooldown to avoid immediate retrigger from external code
         // (external systems can ignore this if they want faster repeats)
         // note: attackCooldown default is set in inspector
         // start strike timing (enables hitbox after strikeDelay)
         //StartStrike();
         //attackCooldownTimer = attackCooldown;
+    }
+
+    private System.Collections.IEnumerator ClearAttackAfter(float duration)
+    {
+        if (duration > 0f)
+            yield return new WaitForSeconds(duration);
+        // return to idle pose
+        if (animator != null)
+            animator.SetBool("IsSwinging", false);
+        isAttacking = false;
     }
 }
