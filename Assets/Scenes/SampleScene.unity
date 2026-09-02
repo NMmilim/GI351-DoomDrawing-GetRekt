@@ -297,6 +297,7 @@ RectTransform:
   - {fileID: 1243390385}
   - {fileID: 77878536}
   - {fileID: 317558201}
+  - {fileID: 1163982454}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -316,7 +317,6 @@ GameObject:
   - component: {fileID: 317558203}
   - component: {fileID: 317558202}
   - component: {fileID: 317558205}
-  - component: {fileID: 317558204}
   m_Layer: 5
   m_Name: Parry
   m_TagString: Untagged
@@ -381,21 +381,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 317558200}
   m_CullTransparentMesh: 1
---- !u!114 &317558204
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 317558200}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 25369f740993449428e27fa217e1acb5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ParryUIBuilder
-  anchoredPosition: {x: 0, y: 100}
-  sizeDelta: {x: 64, y: 64}
-  resourceSpriteName: parryUI
 --- !u!223 &317558205
 Canvas:
   m_ObjectHideFlags: 0
@@ -1021,16 +1006,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1163982452}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 287366555}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 48.87494, y: 37.04163}
+  m_AnchoredPosition: {x: -387.72504, y: -151.45837}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &1163982456
@@ -1509,5 +1494,4 @@ SceneRoots:
   - {fileID: 1769346934}
   - {fileID: 597045906}
   - {fileID: 1518070594}
-  - {fileID: 1163982454}
   - {fileID: 287366555}

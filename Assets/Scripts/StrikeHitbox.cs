@@ -18,6 +18,9 @@ public class StrikeHitbox : MonoBehaviour
     {
         if (used) return;
         if (other == null) return;
+
+        Debug.Log($"[StrikeHitbox] OnTriggerEnter2D: owner={(owner!=null?owner.name:"null")}, other={(other.gameObject!=null?other.gameObject.name:"null")}");
+
         // only affect player
         if (other.CompareTag("Player"))
         {
@@ -27,7 +30,7 @@ public class StrikeHitbox : MonoBehaviour
                 // ask player if incoming attack is handled (parry/block)
                 IDamageable attacker = null;
                 if (owner != null) attacker = owner.GetComponent<IDamageable>();
-
+                Debug.Log($"[StrikeHitbox] Passing attacker={(attacker as UnityEngine.Object)?.name} to OnIncomingAttack");
                 bool wasParried;
                 bool handled = pc.OnIncomingAttack(damage, attacker, out wasParried);
                 if (!handled)

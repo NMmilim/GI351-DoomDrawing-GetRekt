@@ -297,6 +297,7 @@ public class Enemy2 : MonoBehaviour, IDamageable
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
+        Debug.Log($"[Enemy2] TakeDamage({damage}) -> currentHealth={currentHealth} on {gameObject.name}");
         if (currentHealth <= 0)
         {
             Die();
@@ -305,17 +306,11 @@ public class Enemy2 : MonoBehaviour, IDamageable
 
     private void Die()
     {
-        // simple death: play animation and destroy
-      //  if (animator != null)
-          //  animator.SetTrigger("Death");
-        // disable collider and script
+        Debug.Log($"[Enemy2] Die() called on {gameObject.name}");
         var col = GetComponent<Collider2D>();
         if (col != null) col.enabled = false;
         enabled = false;
-        // notify UI
-        if (UIManager.Instance != null)
-            UIManager.Instance.AddKill(1);
-
+        if (UIManager.Instance != null) UIManager.Instance.AddKill(1);
         Destroy(gameObject, 0.5f);
     }
 }

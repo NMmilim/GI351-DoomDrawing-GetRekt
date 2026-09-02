@@ -8,7 +8,7 @@ public class UIManager : MonoBehaviour
 
     [Header("UI References")]
     public Text timerText;    // assign in inspector
-    public Text killsText;    // assign in inspector
+    public Text killsText;    // assign in inspector (legacy UnityEngine.UI.Text)
     public Text gameOverText; // assign in inspector (disabled by default)
     public Text healthText;   // assign in inspector (player HP)
 
@@ -35,6 +35,8 @@ public class UIManager : MonoBehaviour
     void Start()
     {
         if (startOnPlay) StartTimer();
+
+        EnsureKillsText(); // make sure killsText exists so AddKill updates visible UI
         UpdateUI();
 
         // ensure game over text is hidden initially
@@ -58,7 +60,7 @@ public class UIManager : MonoBehaviour
     void UpdateUI()
     {
         UpdateTimerText();
-        if (killsText != null) killsText.text = "Kills: " + kills.ToString();
+        UpdateKillsText();
     }
 
     void UpdateTimerText()
@@ -89,8 +91,18 @@ public class UIManager : MonoBehaviour
     {
         kills += amount;
         Debug.Log($"[UIManager] AddKill({amount}) -> kills={kills}");
-        if (killsText != null) killsText.text = "Kills: " + kills.ToString();
-        else Debug.LogWarning("[UIManager] killsText is not assigned in the Inspector.");
+        UpdateKillsText();
+    }
+
+    private void UpdateKillsText()
+    {
+        if (killsText != null)
+        {
+            killsText.text = "Kills: " + kills.ToString();
+            return;
+        }
+
+        Debug.LogWarning("[UIManager] No legacy killsText assigned. A runtime fallback should have been created.");
     }
 
     // Show the "YOU LOSE" message and stop the timer
@@ -169,5 +181,38 @@ public class UIManager : MonoBehaviour
         parryActiveCue.SetActive(false);
         // also hide the fill after active window ends
         if (parryFillImage != null) parryFillImage.gameObject.SetActive(false);
+    }
+
+    // Create a fallback killsText in case it's not assigned in the Inspector
+    private void EnsureKillsText()
+    {
+        if (killsText != null) return;
+
+        // find or create Canvas
+        Canvas canvas = FindObjectOfType<Canvas>();
+        if (canvas == null)
+        {
+            GameObject canvasGO = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas = canvasGO.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        }
+
+        // create a Text GameObject
+        GameObject go = new GameObject("KillsText", typeof(RectTransform), typeof(Text));
+        go.transform.SetParent(canvas.transform, false);
+        Text t = go.GetComponent<Text>();
+        t.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        t.fontSize = 16;
+        t.alignment = TextAnchor.UpperLeft;
+        t.color = Color.white;
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0, 1);
+        rt.anchorMax = new Vector2(0, 1);
+        rt.pivot = new Vector2(0, 1);
+        rt.anchoredPosition = new Vector2(10, -10);
+        killsText = t;
+
+        Debug.Log("[UIManager] Created fallback killsText at runtime.");
+        UpdateKillsText();
     }
 }

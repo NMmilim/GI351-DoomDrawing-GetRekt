@@ -175,13 +175,12 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log("[PlayerController] PERFECT PARRY!");
 
-        // choose attacker to damage: prefer the recorded incomingAttacker, fall back to pending attacker set by enemy
         IDamageable attackerToDamage = incomingAttacker != null ? incomingAttacker : attackingEnemyPending;
 
         if (attackerToDamage != null)
         {
-            // safe-check the backing Unity object before calling TakeDamage
             var enemyObject = attackerToDamage as UnityEngine.Object;
+            Debug.Log($"[PlayerController] Parry -> will damage attacker: {(enemyObject != null ? enemyObject.name : "null")}");
             if (enemyObject != null)
             {
                 attackerToDamage.TakeDamage(parryAttack);
@@ -192,12 +191,17 @@ public class PlayerController : MonoBehaviour
                 Debug.Log("[PlayerController] attacker missing/destroyed; skipping counter damage");
             }
         }
+        else
+        {
+            Debug.Log("[PlayerController] No attacker recorded at parry time");
+        }
 
-        // resolved: clear recorded incoming attack and pending attacker
+        // TEMP TEST: forces kill count increment
+        if (UIManager.Instance != null) UIManager.Instance.AddKill(1); // TEMP TEST: forces kill count increment
+
         ClearIncomingAttack();
         attackingEnemyPending = null;
 
-        // Return to Idle after animation
         Invoke(nameof(SetAnimationIdle), 0.35f);
     }
 
@@ -223,21 +227,50 @@ public class PlayerController : MonoBehaviour
     public bool OnIncomingAttack(int damage, IDamageable attacker, out bool wasParried)
     {
         wasParried = false;
-        Debug.Log($"[PlayerController] OnIncomingAttack called: state={currentState}, parryTimer={parryTimer:F3}, damage={damage}");
+        Debug.Log($"[PlayerController] OnIncomingAttack called: state={currentState}, parryTimer={parryTimer:F3}, damage={damage}, attacker={(attacker as UnityEngine.Object)?.name}");
 
         if (currentState == PlayerState.Guard)
         {
-            // Record incoming attack for resolution on release
+            // If player is already holding long enough at the moment of collision => immediate parry
+            if (parryTimer >= perfectParryWindow)
+            {
+                wasParried = true;
+
+                // Visual feedback
+                if (animator != null)
+                    animator.SetTrigger("Parry");
+
+                // Apply counter damage immediately (so enemy Die() and UI.AddKill happen synchronously)
+                if (attacker != null)
+                {
+                    var enemyObj = attacker as UnityEngine.Object;
+                    Debug.Log($"[PlayerController] Immediate parry -> damaging attacker: {(enemyObj != null ? enemyObj.name : "null")} for {parryAttack}");
+                    if (enemyObj != null)
+                    {
+                        attacker.TakeDamage(parryAttack);
+                        Debug.Log("[PlayerController] COUNTER ATTACK (immediate)!");
+                    }
+                    else
+                    {
+                        Debug.Log("[PlayerController] attacker missing/destroyed; skipping immediate counter damage");
+                    }
+                }
+
+                // Do not record incoming attack when we resolve it immediately.
+                ClearIncomingAttack();
+                return true; // attack handled
+            }
+
+            // Otherwise record the incoming attack so release can resolve it (optional fallback)
             incomingAttackRecorded = true;
             incomingAttacker = attacker;
             incomingDamage = damage;
 
-            // We don't apply damage now. If player releases with sufficient parryTimer we will parry.
-            // Play block animation immediately (visual feedback)
+            // Play block animation as immediate feedback
             if (animator != null)
                 animator.SetTrigger("Block");
 
-            Debug.Log("[PlayerController] Incoming attack recorded while guarding (will resolve on release)");
+            Debug.Log("[PlayerController] Incoming attack recorded while guarding (will resolve on release if player times it)");
             return true; // attack handled (player won't take immediate damage)
         }
 
