@@ -90,6 +90,12 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // allow external systems (enemy) to adjust the expected parry hold duration for the next incoming attack
+    public void SetPerfectParryWindow(float seconds)
+    {
+        perfectParryWindow = seconds;
+    }
+
     // ==========================================
     // GUARD
     // ==========================================
