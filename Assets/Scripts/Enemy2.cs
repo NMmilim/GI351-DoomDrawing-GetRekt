@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Enemy2 : MonoBehaviour
+public class Enemy2 : MonoBehaviour, IDamageable
 {
     public float speed = 1.5f;
     public float stopDistance = 1.2f;
@@ -16,6 +16,16 @@ public class Enemy2 : MonoBehaviour
     private bool isAttacking = false;
     public float attackDuration = 0.4f; // how long the attack state lasts before returning to idle
     private bool beatSubscribed = false;
+    [Header("Health")]
+    public int maxHealth = 1;
+    private int currentHealth;
+
+    [Header("Strike Settings")]
+    public float strikeOffset = 0.6f;
+    public float strikeRadius = 0.25f;
+    public float strikeActiveTime = 0.15f;
+    public float strikeDelay = 0.08f; // delay between animation trigger and hitbox active
+    public int strikeDamage = 1;
 
     void Start()
     {
@@ -43,6 +53,9 @@ public class Enemy2 : MonoBehaviour
         // if Animator is on a child sprite object, try to find it there too
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
+
+        // init health
+        currentHealth = maxHealth;
 
         // subscribe to beat events if BeatHit exists (or set up to subscribe later)
         if (BeatHit.Instance != null)
@@ -202,6 +215,14 @@ public class Enemy2 : MonoBehaviour
         isPreparing = false;
         Prep = false;
 
+        // inform player which enemy is attacking so PerfectParry can damage this enemy
+        if (target != null)
+        {
+            var pc = target.GetComponent<PlayerController>();
+            if (pc != null)
+                pc.SetAttackingEnemy(this);
+        }
+
         // clear attacking flag after attackDuration and return to idle pose
         StartCoroutine(ClearAttackAfter(attackDuration));
 
@@ -211,6 +232,56 @@ public class Enemy2 : MonoBehaviour
         // start strike timing (enables hitbox after strikeDelay)
         //StartStrike();
         //attackCooldownTimer = attackCooldown;
+        // create a transient strike hitbox in front of enemy for player to parry
+        CreateStrikeHitbox();
+    }
+
+    private void CreateStrikeHitbox()
+    {
+        // spawn a GameObject with CircleCollider2D and StrikeHitbox script
+        GameObject hb = new GameObject("StrikeHitbox");
+        // position in front of enemy toward the player if available
+        Vector2 dir;
+        if (target != null)
+            dir = ((Vector2)target.position - (Vector2)transform.position).normalized;
+        else
+            dir = transform.right;
+
+        Vector3 pos = transform.position + (Vector3)(dir * strikeOffset);
+        hb.transform.position = pos;
+        hb.transform.parent = transform; // parent so it follows enemy movement briefly
+
+        // add collider
+        var col = hb.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+        col.radius = strikeRadius;
+
+        // disable collider if there's a delay so it doesn't hit early
+        if (strikeDelay > 0f)
+            col.enabled = false;
+
+        // add script
+        var sh = hb.AddComponent<StrikeHitbox>();
+        sh.damage = strikeDamage;
+        sh.owner = gameObject;
+
+        // schedule activation and destruction
+        StartCoroutine(StrikeLifecycle(hb, col));
+    }
+
+    private System.Collections.IEnumerator StrikeLifecycle(GameObject hb, Collider2D col)
+    {
+        if (strikeDelay > 0f)
+            yield return new WaitForSeconds(strikeDelay);
+
+        if (col != null)
+            col.enabled = true;
+
+        // keep active for strikeActiveTime
+        yield return new WaitForSeconds(strikeActiveTime);
+
+        if (hb != null)
+            Destroy(hb);
     }
 
     private System.Collections.IEnumerator ClearAttackAfter(float duration)
@@ -221,5 +292,30 @@ public class Enemy2 : MonoBehaviour
         if (animator != null)
             animator.SetBool("IsSwinging", false);
         isAttacking = false;
+    }
+
+    public void TakeDamage(int damage)
+    {
+        currentHealth -= damage;
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    private void Die()
+    {
+        // simple death: play animation and destroy
+        if (animator != null)
+            animator.SetTrigger("Death");
+        // disable collider and script
+        var col = GetComponent<Collider2D>();
+        if (col != null) col.enabled = false;
+        enabled = false;
+        // notify UI
+        if (UIManager.Instance != null)
+            UIManager.Instance.AddKill(1);
+
+        Destroy(gameObject, 0.5f);
     }
 }

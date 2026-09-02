@@ -19,6 +19,7 @@ public class PlayerController : MonoBehaviour
     [Header("Parry")]
     [SerializeField] private float perfectParryWindow = 0.2f;
     [SerializeField] private int parryDamage = 1;
+    [SerializeField] private int parryAttack = 1; // damage dealt to enemy when parried
 
     [Header("Animation")]
     [SerializeField] private Animator animator;
@@ -26,7 +27,7 @@ public class PlayerController : MonoBehaviour
     private int currentHealth;
     private PlayerState currentState = PlayerState.Idle;
 
-    private EnemyController attackingEnemy;
+    private IDamageable attackingEnemy;
     private float parryTimer;
 
     private void Start()
@@ -144,7 +145,7 @@ public class PlayerController : MonoBehaviour
 
         if (attackingEnemy != null)
         {
-            attackingEnemy.TakeDamage(parryDamage);
+            attackingEnemy.TakeDamage(parryAttack);
 
             Debug.Log("COUNTER ATTACK!");
 
@@ -159,9 +160,48 @@ public class PlayerController : MonoBehaviour
     // ENEMY ATTACK
     // ==========================================
 
-    public void SetAttackingEnemy(EnemyController enemy)
+    public void SetAttackingEnemy(IDamageable enemy)
     {
         attackingEnemy = enemy;
+    }
+
+    // Called by enemies (or hitboxes) when an attack collides with the player.
+    // Returns true if the attack was handled (blocked or parried) and player should take no damage.
+    // If parried, the attacker will be damaged by parryAttack.
+    public bool OnIncomingAttack(int damage, IDamageable attacker, out bool wasParried)
+    {
+        wasParried = false;
+
+        if (currentState == PlayerState.Guard)
+        {
+            // If the player has been holding long enough, treat as perfect parry
+            if (parryTimer >= perfectParryWindow)
+            {
+                wasParried = true;
+                // play parry animation
+                if (animator != null)
+                    animator.SetTrigger("Parry");
+
+                // damage the attacker (parry attack)
+                if (attacker != null)
+                    attacker.TakeDamage(parryAttack);
+
+                Debug.Log("PARried incoming attack");
+                return true; // attack handled
+            }
+            else
+            {
+                // block: simply absorb the hit (no damage to player)
+                if (animator != null)
+                    animator.SetTrigger("Block");
+
+                Debug.Log("Blocked incoming attack");
+                return true;
+            }
+        }
+
+        // not guarding -> attack not handled, player should take damage
+        return false;
     }
 
     // ==========================================

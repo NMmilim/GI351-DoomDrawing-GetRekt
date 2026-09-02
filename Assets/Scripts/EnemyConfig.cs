@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class EnemyController : MonoBehaviour
+public class EnemyController : MonoBehaviour, IDamageable
 {
     public enum EnemyState
     {
@@ -115,8 +115,13 @@ public class EnemyController : MonoBehaviour
             // Tell Player which enemy is attacking
             playerController.SetAttackingEnemy(this);
 
-            // Enemy attacks
-            playerController.TakeDamage(attackDamage);
+            // Ask player to handle incoming attack (parry/block). If not handled, apply damage.
+            bool wasParried;
+            bool handled = playerController.OnIncomingAttack(attackDamage, this, out wasParried);
+            if (!handled)
+            {
+                playerController.TakeDamage(attackDamage);
+            }
         }
 
         Debug.Log("ENEMY ATTACK!");
