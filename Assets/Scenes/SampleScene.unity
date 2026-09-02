@@ -249,14 +249,14 @@ RectTransform:
   m_GameObject: {fileID: 332892643}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.8132, y: 1.8132, z: 1.8132}
+  m_LocalScale: {x: 2.7876136, y: 2.7876136, z: 2.7876136}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 287366555}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 10.5, y: 36.5}
+  m_AnchoredPosition: {x: 29, y: 65}
   m_SizeDelta: {x: 165.27, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &332892645
@@ -272,8 +272,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
-  m_RaycastTarget: 1
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -292,7 +292,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: New Text
+  m_Text: Time
 --- !u!222 &332892646
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -993,14 +993,14 @@ RectTransform:
   m_GameObject: {fileID: 1246356521}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.6435, y: 1.6435, z: 1.6435}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 287366555}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 153, y: 88}
+  m_AnchoredPosition: {x: 176, y: 153}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1246356523
@@ -1016,7 +1016,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1036,7 +1036,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: New Text
+  m_Text: Kill
 --- !u!222 &1246356524
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1057,9 +1057,13 @@ PrefabInstance:
       propertyPath: m_Name
       value: Spawner
       objectReference: {fileID: 0}
+    - target: {fileID: 3988025822002779905, guid: 73d36f597bf308641899c8191994f73d, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8341741918562279726, guid: 73d36f597bf308641899c8191994f73d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.91
+      value: 1.51
       objectReference: {fileID: 0}
     - target: {fileID: 8341741918562279726, guid: 73d36f597bf308641899c8191994f73d, type: 3}
       propertyPath: m_LocalPosition.y
