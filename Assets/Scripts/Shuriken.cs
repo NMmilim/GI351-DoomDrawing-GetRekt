@@ -15,28 +15,12 @@ public class Shuriken : MonoBehaviour
         velocity = dir.normalized * speed;
         // schedule destroy
         Destroy(gameObject, lifeTime);
-        if (owner != null) ownerTransform = owner.transform;
+      
     }
 
     void FixedUpdate()
     {
-        if (returning)
-        {
-            if (ownerTransform == null)
-                return;
-
-            Vector2 toOwner = (ownerTransform.position - transform.position);
-            float dist = toOwner.magnitude;
-            if (dist < 0.1f)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            Vector2 dir = toOwner.normalized;
-            transform.position += (Vector3)(dir * speed * Time.fixedDeltaTime);
-            return;
-        }
+  
 
         if (velocity.sqrMagnitude > 0f)
         {

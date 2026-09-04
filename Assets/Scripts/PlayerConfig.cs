@@ -6,8 +6,6 @@ public class PlayerController : MonoBehaviour
     public enum PlayerState
     {
         Idle,
-        Guard,
-        Block,
         Parry,
         Hit,
         Dead
@@ -18,9 +16,10 @@ public class PlayerController : MonoBehaviour
 
     [Header("Parry")]
     [SerializeField] private int parryAttack = 1; // damage dealt to enemy on parry
-    [Header("Input & Dodge")]
-    [Tooltip("Seconds after pressing an arrow within which an incoming attack can be parried")]
+    [Tooltip("Seconds after pressing parry input within which an incoming attack can be parried")]
     [SerializeField] private float parryInputWindow = 0.25f;
+
+    [Header("Input & Dodge")]
     [SerializeField] private float dodgeDuration = 0.35f;
 
     // runtime input state
@@ -54,53 +53,47 @@ public class PlayerController : MonoBehaviour
         if (Keyboard.current == null) return;
         if (currentState == PlayerState.Dead) return;
 
-        // Parry input: spacebar (single button parry)
+        // --- PARRY INPUT ---
         if (Keyboard.current.spaceKey.wasPressedThisFrame)
         {
-            ActivateParry();
+            lastParryTime = Time.time;
+            currentState = PlayerState.Parry;
+
+            if (animator != null)
+            {
+                animator.SetTrigger("Parry");
+            }
+
+            // Reset back to idle after short delay
+            Invoke(nameof(SetAnimationIdle), parryInputWindow);
         }
-    }
 
-    private void ActivateParry()
-    {
-        parryActive = true;
-        currentState = PlayerState.Parry;
-        if (animator != null)
-            animator.SetTrigger("Parry");
+        // --- DODGE SYSTEM (planned, commented out) ---
+        /*
+        if (Keyboard.current.spaceKey.wasPressedThisFrame && SomeConditionForDodge())
+        {
+            isDodging = true;
+            dodgeEndTime = Time.time + dodgeDuration;
+            currentState = PlayerState.Parry; // placeholder, later replace with Dodge state
 
-        if (parryActiveDuration > 0f)
-            Invoke(nameof(ClearParryActive), parryActiveDuration);
-    }
+            if (animator != null)
+            {
+                animator.SetTrigger("Dodge");
+            }
+        }
 
-    private void ClearParryActive()
-    {
-        parryActive = false;
+        if (isDodging && Time.time >= dodgeEndTime)
+        {
+            isDodging = false;
+            SetAnimationIdle();
+        }
+        */
     }
 
     // ENEMY ATTACK
     public void SetAttackingEnemy(EnemyController enemy)
     {
         attackingEnemy = enemy;
-    }
-
-    // Called by hitboxes/enemies to let the player resolve incoming attack immediately.
-    // Returns true if the attack was handled (dodged or parried/blocked), false if player should take damage.
-    public bool OnIncomingAttack(int damage, EnemyController attacker, out bool wasParried)
-    {
-        wasParried = false;
-
-        // Parry: if player activated parry, handle it immediately
-        if (parryActive)
-        {
-            wasParried = true;
-            if (animator != null) animator.SetTrigger("Parry");
-            if (attacker != null) attacker.TakeDamage(parryAttack);
-            parryActive = false;
-            return true;
-        }
-
-        // No dodge or parry -> not handled
-        return false;
     }
 
     // DAMAGE
@@ -127,7 +120,6 @@ public class PlayerController : MonoBehaviour
 
         if (animator != null)
         {
-            animator.SetBool("IsGuarding", false);
             animator.SetTrigger("Hit");
         }
 
@@ -142,7 +134,6 @@ public class PlayerController : MonoBehaviour
 
         if (animator != null)
         {
-            animator.SetBool("IsGuarding", false);
             animator.SetTrigger("Death");
         }
 
@@ -162,14 +153,49 @@ public class PlayerController : MonoBehaviour
             return;
 
         currentState = PlayerState.Idle;
-
-        if (animator != null)
-        {
-            animator.SetBool("IsGuarding", false);
-        }
     }
 
     // GETTERS
     public int GetHealth() => currentHealth;
     public PlayerState GetState() => currentState;
+
+    // Called by enemies when they attempt to hit the player.
+    // Returns true if the attack was handled (parried/dodged), false if damage was applied.
+    public bool OnIncomingAttack(int damage, EnemyController attacker, out bool wasParried)
+    {
+        wasParried = false;
+
+        // Check parry timing
+        if (Time.time - lastParryTime <= parryInputWindow)
+        {
+            currentState = PlayerState.Parry;
+            if (animator != null)
+            {
+                animator.SetTrigger("Parry");
+            }
+
+            // Damage enemy back if reference exists
+            if (attacker != null)
+            {
+                attacker.TakeDamage(parryAttack);
+            }
+
+            wasParried = true;
+            return true; // attack was handled
+        }
+
+        // --- DODGE SYSTEM (planned, commented out) ---
+        /*
+        if (isDodging)
+        {
+            return true; // attack avoided
+        }
+        */
+
+        // Otherwise, player takes damage
+        TakeDamage(damage);
+        return false;
+    }
+
+
 }
