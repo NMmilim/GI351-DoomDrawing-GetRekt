@@ -1,75 +1,76 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Collider2D), typeof(Rigidbody2D))]
 public class Shuriken : MonoBehaviour
 {
     public GameObject owner;
     public int damage = 1;
     public float speed = 6f;
-    public float lifeTime = 3f;
+    public float hitRange = 0.3f; // how close to player before it counts as a hit
 
-    private Vector2 velocity;
-    // no return behavior; destroyed on parry
+    private Rigidbody2D rb;
+    private Transform player;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        rb.gravityScale = 0f;
+        rb.isKinematic = false;
+        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+        var col = GetComponent<Collider2D>();
+        if (col != null) col.isTrigger = true;
+
+        // find player once
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null) player = playerObj.transform;
+    }
 
     public void Launch(Vector2 dir)
     {
-        velocity = dir.normalized * speed;
-        // schedule destroy
-        Destroy(gameObject, lifeTime);
-      
+        rb.linearVelocity = dir.normalized * speed;
     }
 
-    void FixedUpdate()
+    private void Update()
     {
-  
+        if (player == null) return;
 
-        if (velocity.sqrMagnitude > 0f)
+        // check distance to player
+        float dist = Vector2.Distance(transform.position, player.position);
+        if (dist <= hitRange)
         {
-            transform.position += (Vector3)(velocity * Time.fixedDeltaTime);
-        }
-    }
-
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other == null) return;
-        // no return behavior: handle collision normally
-
-        if (other.CompareTag("Player"))
-        {
-            var pc = other.GetComponent<PlayerController>();
+            var pc = player.GetComponent<PlayerController>();
             if (pc != null)
             {
-                // let player decide if parry/block handles it
-                EnemyController attacker = null;
-                if (owner != null) attacker = owner.GetComponent<EnemyController>();
+                EnemyController attacker = owner != null ? owner.GetComponent<EnemyController>() : null;
 
                 bool wasParried;
                 bool handled = pc.OnIncomingAttack(damage, attacker, out wasParried);
+
                 if (!handled)
                 {
                     pc.TakeDamage(damage);
                 }
-                else
+                else if (wasParried)
                 {
-                    if (wasParried)
-                    {
-                        // on parry, destroy the shuriken
-                        Destroy(gameObject);
-                        return;
-                    }
-                    // handled (blocked) but not parried -> destroy
+                    Debug.Log("Shuriken parried!");
+                    Destroy(gameObject);
+                    return;
                 }
-                // destroy shuriken in non-return cases
-                Destroy(gameObject);
             }
-        }
-        else
-        {
-            // hit world or other, destroy
-            // ignore owner collisions
-            if (owner != null && other.gameObject == owner) return;
+
+            // always destroy once it reaches player
             Destroy(gameObject);
         }
     }
 
-    // no return behavior
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        // still destroy if it hits environment
+        if (other != null && !other.CompareTag("Player"))
+        {
+            if (owner != null && other.gameObject == owner) return;
+            Destroy(gameObject);
+        }
+    }
 }
