@@ -8,8 +8,7 @@ public class Shuriken : MonoBehaviour
     public float lifeTime = 3f;
 
     private Vector2 velocity;
-    private bool returning = false;
-    private Transform ownerTransform;
+    // no return behavior; destroyed on parry
 
     public void Launch(Vector2 dir)
     {
@@ -48,15 +47,7 @@ public class Shuriken : MonoBehaviour
     void OnTriggerEnter2D(Collider2D other)
     {
         if (other == null) return;
-        if (returning)
-        {
-            // only collide with owner when returning
-            if (owner != null && other.gameObject == owner)
-            {
-                Destroy(gameObject);
-            }
-            return;
-        }
+        // no return behavior: handle collision normally
 
         if (other.CompareTag("Player"))
         {
@@ -77,8 +68,8 @@ public class Shuriken : MonoBehaviour
                 {
                     if (wasParried)
                     {
-                        // on parry, send the shuriken back to its owner
-                        BeginReturnToOwner();
+                        // on parry, destroy the shuriken
+                        Destroy(gameObject);
                         return;
                     }
                     // handled (blocked) but not parried -> destroy
@@ -96,13 +87,5 @@ public class Shuriken : MonoBehaviour
         }
     }
 
-    private void BeginReturnToOwner()
-    {
-        returning = true;
-        // cancel any scheduled destroy and reschedule for return path
-        CancelInvoke();
-        Destroy(gameObject, lifeTime); // ensure eventual cleanup
-        // stop current velocity; will move toward owner's current position in FixedUpdate
-        velocity = Vector2.zero;
-    }
+    // no return behavior
 }

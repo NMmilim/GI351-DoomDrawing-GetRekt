@@ -245,7 +245,7 @@ public class EnemyController : MonoBehaviour
             var rb = go.GetComponent<Rigidbody2D>();
             if (rb == null) rb = go.AddComponent<Rigidbody2D>();
             rb.gravityScale = 0f;
-            rb.velocity = dir * shurikenSpeed;
+            rb.linearVelocity = dir * shurikenSpeed;
             Destroy(go, shurikenLifeTime);
         }
     }

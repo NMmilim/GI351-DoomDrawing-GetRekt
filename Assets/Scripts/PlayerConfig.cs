@@ -54,45 +54,27 @@ public class PlayerController : MonoBehaviour
         if (Keyboard.current == null) return;
         if (currentState == PlayerState.Dead) return;
 
-        // Parry input: left/right arrow for directional parry (immediate)
-        if (Keyboard.current.leftArrowKey.wasPressedThisFrame)
-            RegisterParry(-1);
-        if (Keyboard.current.rightArrowKey.wasPressedThisFrame)
-            RegisterParry(1);
-
-        // Dodge input: spacebar
+        // Parry input: spacebar (single button parry)
         if (Keyboard.current.spaceKey.wasPressedThisFrame)
-            PerformDodge();
-
-        // update dodge state
-        if (isDodging && Time.time >= dodgeEndTime)
         {
-            isDodging = false;
-            SetAnimationIdle();
+            ActivateParry();
         }
     }
 
-    // New input: directional parry and dodge
-    private void RegisterParry(int dir)
+    private void ActivateParry()
     {
-        lastParryDir = dir;
+        parryActive = true;
         currentState = PlayerState.Parry;
         if (animator != null)
-        {
-            animator.SetInteger("ParryDir", dir);
             animator.SetTrigger("Parry");
-        }
-        // return to idle shortly after
-        Invoke(nameof(SetAnimationIdle), 0.25f);
+
+        if (parryActiveDuration > 0f)
+            Invoke(nameof(ClearParryActive), parryActiveDuration);
     }
 
-    private void PerformDodge()
+    private void ClearParryActive()
     {
-        if (isDodging) return;
-        isDodging = true;
-        dodgeEndTime = Time.time + dodgeDuration;
-        currentState = PlayerState.Idle; // transient state
-        if (animator != null) animator.SetTrigger("Dodge");
+        parryActive = false;
     }
 
     // ENEMY ATTACK
@@ -107,25 +89,14 @@ public class PlayerController : MonoBehaviour
     {
         wasParried = false;
 
-        // Dodge: if currently dodging, ignore damage
-        if (isDodging && Time.time <= dodgeEndTime) return true;
-
-        // Directional parry: immediate match based on lastParryDir
-        if (lastParryDir != 0 && attacker != null)
+        // Parry: if player activated parry, handle it immediately
+        if (parryActive)
         {
-            float attackerX = attacker.transform.position.x;
-            float playerX = transform.position.x;
-            int attackerSide = (attackerX < playerX) ? -1 : 1;
-            if (attackerSide == lastParryDir)
-            {
-                // successful parry
-                wasParried = true;
-                if (animator != null) animator.SetTrigger("Parry");
-                attacker.TakeDamage(parryAttack);
-                // consume parry input
-                lastParryDir = 0;
-                return true;
-            }
+            wasParried = true;
+            if (animator != null) animator.SetTrigger("Parry");
+            if (attacker != null) attacker.TakeDamage(parryAttack);
+            parryActive = false;
+            return true;
         }
 
         // No dodge or parry -> not handled
