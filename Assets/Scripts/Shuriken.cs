@@ -8,16 +8,37 @@ public class Shuriken : MonoBehaviour
     public float lifeTime = 3f;
 
     private Vector2 velocity;
+    private bool returning = false;
+    private Transform ownerTransform;
 
     public void Launch(Vector2 dir)
     {
         velocity = dir.normalized * speed;
         // schedule destroy
         Destroy(gameObject, lifeTime);
+        if (owner != null) ownerTransform = owner.transform;
     }
 
     void FixedUpdate()
     {
+        if (returning)
+        {
+            if (ownerTransform == null)
+                return;
+
+            Vector2 toOwner = (ownerTransform.position - transform.position);
+            float dist = toOwner.magnitude;
+            if (dist < 0.1f)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            Vector2 dir = toOwner.normalized;
+            transform.position += (Vector3)(dir * speed * Time.fixedDeltaTime);
+            return;
+        }
+
         if (velocity.sqrMagnitude > 0f)
         {
             transform.position += (Vector3)(velocity * Time.fixedDeltaTime);
@@ -27,6 +48,16 @@ public class Shuriken : MonoBehaviour
     void OnTriggerEnter2D(Collider2D other)
     {
         if (other == null) return;
+        if (returning)
+        {
+            // only collide with owner when returning
+            if (owner != null && other.gameObject == owner)
+            {
+                Destroy(gameObject);
+            }
+            return;
+        }
+
         if (other.CompareTag("Player"))
         {
             var pc = other.GetComponent<PlayerController>();
@@ -42,7 +73,17 @@ public class Shuriken : MonoBehaviour
                 {
                     pc.TakeDamage(damage);
                 }
-                // destroy shuriken in either case
+                else
+                {
+                    if (wasParried)
+                    {
+                        // on parry, send the shuriken back to its owner
+                        BeginReturnToOwner();
+                        return;
+                    }
+                    // handled (blocked) but not parried -> destroy
+                }
+                // destroy shuriken in non-return cases
                 Destroy(gameObject);
             }
         }
@@ -53,5 +94,15 @@ public class Shuriken : MonoBehaviour
             if (owner != null && other.gameObject == owner) return;
             Destroy(gameObject);
         }
+    }
+
+    private void BeginReturnToOwner()
+    {
+        returning = true;
+        // cancel any scheduled destroy and reschedule for return path
+        CancelInvoke();
+        Destroy(gameObject, lifeTime); // ensure eventual cleanup
+        // stop current velocity; will move toward owner's current position in FixedUpdate
+        velocity = Vector2.zero;
     }
 }
