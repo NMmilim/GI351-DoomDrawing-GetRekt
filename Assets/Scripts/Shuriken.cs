@@ -10,6 +10,7 @@ public class Shuriken : MonoBehaviour
 
     private Rigidbody2D rb;
     private Transform player;
+    private bool used = false; // prevent double-hit processing
 
     private void Awake()
     {
@@ -33,12 +34,15 @@ public class Shuriken : MonoBehaviour
 
     private void Update()
     {
+        if (used) return;
         if (player == null) return;
 
         // check distance to player
         float dist = Vector2.Distance(transform.position, player.position);
         if (dist <= hitRange)
         {
+            used = true;
+
             var pc = player.GetComponent<PlayerController>();
             if (pc != null)
             {
@@ -54,6 +58,11 @@ public class Shuriken : MonoBehaviour
                 else if (wasParried)
                 {
                     Debug.Log("Shuriken parried!");
+
+                    // Award score for successful parry
+                    UIManager.Instance?.AddScore(1);
+                    Debug.Log("[Shuriken] Called UIManager.AddScore(1)");
+
                     Destroy(gameObject);
                     return;
                 }
@@ -66,6 +75,8 @@ public class Shuriken : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (used) return;
+
         // still destroy if it hits environment
         if (other != null && !other.CompareTag("Player"))
         {

@@ -1200,19 +1200,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 1163982452}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 50fa2e6b0245d644c890bf1139f4484c, type: 3}
+  m_Script: {fileID: 11500000, guid: 8e9f56d1da26b06438b2e6219fbc50eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIManager
   timerText: {fileID: 332892645}
-  killsText: {fileID: 1246356523}
+  scoreText: {fileID: 1246356523}
   gameOverText: {fileID: 1243390386}
   healthText: {fileID: 77878537}
-  parryFillImage: {fileID: 317558202}
+  parryFillImage: {fileID: 0}
   parryActiveCue: {fileID: 0}
   startOnPlay: 1
-  elapsed: 0
-  running: 0
-  kills: 0
+  baseKillScore: 5
+  scoreMultiplier: 2
+  multiplierText: {fileID: 0}
 --- !u!224 &1163982454
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1346,7 +1346,7 @@ GameObject:
   - component: {fileID: 1246356524}
   - component: {fileID: 1246356523}
   m_Layer: 5
-  m_Name: Killcount
+  m_Name: Score
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1404,7 +1404,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Kill
+  m_Text: Score
 --- !u!222 &1246356524
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1472,6 +1472,10 @@ PrefabInstance:
     - target: {fileID: 9011304688707549999, guid: 74b53f97a6002854eb570e5a2df85415, type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9011304688707549999, guid: 74b53f97a6002854eb570e5a2df85415, type: 3}
+      propertyPath: maxHealth
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 9011304688707549999, guid: 74b53f97a6002854eb570e5a2df85415, type: 3}
       propertyPath: attackDistance
@@ -1764,6 +1768,10 @@ PrefabInstance:
     - target: {fileID: 2154424236471161827, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2552868695816496732, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
+      propertyPath: maxHealth
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 5157470828573658154, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
       propertyPath: m_BodyType

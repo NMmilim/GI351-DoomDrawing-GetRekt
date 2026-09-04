@@ -45,6 +45,9 @@ public class PlayerController : MonoBehaviour
             animator = GetComponent<Animator>();
         }
 
+        // Update UI with initial health
+        UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
+
         SetAnimationIdle();
     }
 
@@ -102,7 +105,12 @@ public class PlayerController : MonoBehaviour
         if (currentState == PlayerState.Dead)
             return;
 
+        Debug.Log($"TakeDamage called. dmg={damage} currentHealth(before)={currentHealth}\n{System.Environment.StackTrace}");
+
         currentHealth -= damage;
+
+        // Update UI health immediately
+        UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
 
         if (currentHealth <= 0)
         {
@@ -144,6 +152,10 @@ public class PlayerController : MonoBehaviour
         {
             playerCollider.enabled = false;
         }
+
+        // Update UI and show game over
+        UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
+        UIManager.Instance?.ShowLose();
     }
 
     // IDLE
@@ -160,7 +172,7 @@ public class PlayerController : MonoBehaviour
     public PlayerState GetState() => currentState;
 
     // Called by enemies when they attempt to hit the player.
-    // Returns true if the attack was handled (parried/dodged), false if damage was applied.
+    // Returns true if the attack was handled (parried/dodged), false if caller should apply damage.
     public bool OnIncomingAttack(int damage, EnemyController attacker, out bool wasParried)
     {
         wasParried = false;
@@ -192,8 +204,9 @@ public class PlayerController : MonoBehaviour
         }
         */
 
-        // Otherwise, player takes damage
-        TakeDamage(damage);
+        Debug.Log($"OnIncomingAttack called. damage={damage}. lastParryDelta={Time.time - lastParryTime}");
+
+        // Not handled: caller (StrikeHitbox / Shuriken) should call TakeDamage(damage)
         return false;
     }
 
