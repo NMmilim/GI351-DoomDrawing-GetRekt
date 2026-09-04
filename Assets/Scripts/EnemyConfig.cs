@@ -18,6 +18,16 @@ public class EnemyController : MonoBehaviour
     [Header("Attack")]
     [SerializeField] private float prepareTime = 0.8f;
     [SerializeField] private int attackDamage = 1;
+    [Header("Visual/Timing")]
+    [SerializeField] private Animator animator;
+    [SerializeField] private float attackDuration = 0.5f;
+    [SerializeField] private float strikeOffset = 0.6f;
+    // Shuriken (ranged) settings
+    [Header("Shuriken")]
+    public GameObject shurikenPrefab;
+    public float shurikenSpeed = 6f;
+    public float shurikenLifeTime = 3f;
+    public int shurikenDamage = 1;
 
     [Header("Health")]
     [SerializeField] private int maxHealth = 1;
@@ -26,6 +36,10 @@ public class EnemyController : MonoBehaviour
     private float prepareTimer;
 
     private EnemyState currentState = EnemyState.Approach;
+
+    private bool prepared = false;
+    private bool isAttacking = false;
+    private bool beatSubscribed = false;
 
     private Transform player;
 
@@ -38,6 +52,31 @@ public class EnemyController : MonoBehaviour
         if (playerObject != null)
         {
             player = playerObject.transform;
+        }
+
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+
+        // subscribe to BeatHit if present
+        if (BeatHit.Instance != null)
+        {
+            BeatHit.Instance.OnBeat += OnBeat;
+            beatSubscribed = true;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (beatSubscribed && BeatHit.Instance != null)
+            BeatHit.Instance.OnBeat -= OnBeat;
+    }
+
+    private void OnBeat(double dspTime, int beatIndex)
+    {
+        if (prepared && !isAttacking)
+        {
+            prepared = false;
+            AttackPlayer();
         }
     }
 
@@ -91,7 +130,10 @@ public class EnemyController : MonoBehaviour
     {
         currentState = EnemyState.Prepare;
         prepareTimer = prepareTime;
+        prepared = false;
 
+        if (animator != null)
+            animator.SetTrigger("Prepare");
         Debug.Log("ENEMY PREPARE ATTACK");
     }
 
@@ -101,27 +143,42 @@ public class EnemyController : MonoBehaviour
 
         if (prepareTimer <= 0f)
         {
-            currentState = EnemyState.Attack;
+            // finished preparing; wait for beat (or attack immediately if no BeatHit)
+            prepared = true;
+            if (BeatHit.Instance == null)
+            {
+                AttackPlayer();
+            }
         }
     }
 
     private void AttackPlayer()
     {
-        PlayerController playerController =
-            player.GetComponent<PlayerController>();
+        if (isAttacking) return;
+        isAttacking = true;
 
+        PlayerController playerController = player.GetComponent<PlayerController>();
         if (playerController != null)
         {
-            // Tell Player which enemy is attacking
             playerController.SetAttackingEnemy(this);
-
-            // Enemy attacks
-            playerController.TakeDamage(attackDamage);
         }
 
-        Debug.Log("ENEMY ATTACK!");
+        if (animator != null)
+            animator.SetTrigger("Attack");
 
+        // spawn shuriken projectile toward player
+        SpawnShuriken();
+
+        // finish attack after attackDuration
+        Invoke(nameof(FinishAttack), attackDuration);
+    }
+
+    private void FinishAttack()
+    {
+        isAttacking = false;
         currentState = EnemyState.Approach;
+        if (animator != null)
+            animator.ResetTrigger("Attack");
     }
     public void TakeDamage(int damage)
     {
@@ -164,5 +221,32 @@ public class EnemyController : MonoBehaviour
     public EnemyState GetState()
     {
         return currentState;
+    }
+    private void SpawnShuriken()
+    {
+        if (shurikenPrefab == null || player == null) return;
+
+        Vector2 dir = ((Vector2)player.position - (Vector2)transform.position).normalized;
+        Vector3 spawnPos = transform.position + (Vector3)(dir * strikeOffset);
+
+        var go = Instantiate(shurikenPrefab, spawnPos, Quaternion.identity);
+        // try to find a Shuriken component to set parameters, otherwise set Rigidbody2D velocity
+        var s = go.GetComponent<Shuriken>();
+        if (s != null)
+        {
+            s.owner = this.gameObject;
+            s.damage = shurikenDamage;
+            s.speed = shurikenSpeed;
+            s.lifeTime = shurikenLifeTime;
+            s.Launch(dir);
+        }
+        else
+        {
+            var rb = go.GetComponent<Rigidbody2D>();
+            if (rb == null) rb = go.AddComponent<Rigidbody2D>();
+            rb.gravityScale = 0f;
+            rb.velocity = dir * shurikenSpeed;
+            Destroy(go, shurikenLifeTime);
+        }
     }
 }
