@@ -207,7 +207,7 @@ public class UIManager : MonoBehaviour
             if (multiplierText != null)
             {
                 scoreText.text = "Score: " + score.ToString();
-                multiplierText.text = "x" + Mathf.Max(1, scoreMultiplier).ToString();
+              //  multiplierText.text = "x" + Mathf.Max(1, scoreMultiplier).ToString();
             }
             else
             {
@@ -215,7 +215,7 @@ public class UIManager : MonoBehaviour
                 scoreText.text = "Score: " + score.ToString();
                 if (scoreMultiplier > 1)
                 {
-                    scoreText.text += " (x" + scoreMultiplier.ToString() + ")";
+                   // scoreText.text += " (x" + scoreMultiplier.ToString() + ")";
                 }
             }
             return;

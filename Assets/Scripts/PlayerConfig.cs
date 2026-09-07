@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -29,6 +30,16 @@ public class PlayerController : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float recoveryAfterHitMultiplier = 0.75f;
 
+    [Header("Adrenaline Surge (after recovery)")]
+    [Tooltip("Delay after recovery parry before adrenaline surge begins (seconds)")]
+    [SerializeField] private float adrenalineSurgeDelay = 1f;
+    [Tooltip("Duration of the adrenaline surge (seconds)")]
+    [SerializeField] private float adrenalineSurgeDuration = 5f;
+    [Tooltip("BPM added per second during the adrenaline surge")]
+    [SerializeField] private float adrenalineSurgePerSecond = 1f;
+    [Tooltip("If true start surge automatically after a recovery parry")]
+    [SerializeField] private bool startSurgeOnRecoveryParry = true;
+
     // runtime input state
     private float lastParryTime = -10f;
     private int lastParryDir = 0; // -1 left, +1 right
@@ -52,6 +63,9 @@ public class PlayerController : MonoBehaviour
     // Track recent hit info so a later perfect parry can reduce BPM
     private float lastHitTime = -10f;
     private int lastHitDamage = 0;
+
+    // Adrenaline coroutine handle
+    private Coroutine adrenalineCoroutine;
 
     private void Start()
     {
@@ -248,6 +262,13 @@ public class PlayerController : MonoBehaviour
                 // consume the recent hit so it doesn't repeatedly recover
                 lastHitDamage = 0;
                 lastHitTime = -10f;
+
+                // Optionally start an adrenaline surge after a short delay following recovery parry
+                if (startSurgeOnRecoveryParry)
+                {
+                    if (adrenalineCoroutine != null) StopCoroutine(adrenalineCoroutine);
+                    adrenalineCoroutine = StartCoroutine(AdrenalineSurgeRoutine());
+                }
             }
 
             return true; // attack was handled
@@ -279,5 +300,23 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
+    // Adrenaline surge: after a recovery parry we optionally add BPM over time to simulate adrenaline.
+    private IEnumerator AdrenalineSurgeRoutine()
+    {
+        // delay before surge starts
+        if (adrenalineSurgeDelay > 0f)
+            yield return new WaitForSeconds(adrenalineSurgeDelay);
 
+        float t = 0f;
+        while (t < adrenalineSurgeDuration)
+        {
+            float dt = Time.deltaTime;
+            t += dt;
+            // small per-frame BPM increase
+            HeartRate.Instance?.ModifyRate(adrenalineSurgePerSecond * dt);
+            yield return null;
+        }
+
+        adrenalineCoroutine = null;
+    }
 }
