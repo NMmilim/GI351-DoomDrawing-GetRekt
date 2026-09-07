@@ -32,6 +32,10 @@ public class EnemyController : MonoBehaviour
     [Header("Health")]
     [SerializeField] private int maxHealth = 1;
 
+    [Header("Debug / Gameplay")]
+    [Tooltip("When true the enemy will not die. Toggle in inspector or via SetUnkillable()/ToggleUnkillable().")]
+    [SerializeField] private bool unkillable = false;
+
     private int currentHealth;
     private float prepareTimer;
 
@@ -178,6 +182,14 @@ public class EnemyController : MonoBehaviour
     {
         if (currentState == EnemyState.Dead) return;
 
+        if (unkillable)
+        {
+            Debug.Log($"Enemy ignored {damage} damage because unkillable is enabled.");
+            // still provide feedback to player (stun) so hits feel meaningful
+            Stun();
+            return;
+        }
+
         currentHealth -= damage;
         Debug.Log("Enemy HP: " + currentHealth);
 
@@ -201,6 +213,12 @@ public class EnemyController : MonoBehaviour
 
     public void Die()
     {
+        if (unkillable)
+        {
+            Debug.Log("Die() called but enemy is unkillable. Ignoring death.");
+            return;
+        }
+
         currentState = EnemyState.Dead;
         Debug.Log("ENEMY DEAD");
         Destroy(gameObject);
@@ -228,5 +246,26 @@ public class EnemyController : MonoBehaviour
             s.speed = shurikenSpeed;
             s.Launch(dir);
         }
+    }
+
+    // ------------ Runtime control for unkillable ------------
+
+    // Toggle unkillable state
+    public void ToggleUnkillable()
+    {
+        SetUnkillable(!unkillable);
+    }
+
+    // Set unkillable on/off
+    public void SetUnkillable(bool value)
+    {
+        unkillable = value;
+        Debug.Log($"Enemy unkillable set to {unkillable}");
+    }
+
+    // Query current unkillable state
+    public bool IsUnkillable()
+    {
+        return unkillable;
     }
 }
