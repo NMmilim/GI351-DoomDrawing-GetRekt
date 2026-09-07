@@ -243,7 +243,11 @@ public class EnemyController : MonoBehaviour
         {
             s.owner = this.gameObject;
             s.damage = shurikenDamage;
+
+            // Provide the base speed; Shuriken will apply HeartRate multiplier itself (controlled by followHeartRate)
             s.speed = shurikenSpeed;
+            s.followHeartRate = true;
+
             s.Launch(dir);
         }
     }

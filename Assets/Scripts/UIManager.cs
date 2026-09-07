@@ -23,6 +23,8 @@ public class UIManager : MonoBehaviour
 
     [Header("Timer")]
     public bool startOnPlay = true;
+    [Tooltip("When true the timer uses unscaled time (continues while game is paused via timeScale=0).")]
+    public bool useUnscaledTime = true;
 
     [Header("Scoring")]
     [Tooltip("Base points awarded for a typical kill/action")]
@@ -32,6 +34,10 @@ public class UIManager : MonoBehaviour
     [Tooltip("Optional Text to display the current multiplier (assign in inspector)")]
     public Text multiplierText;
 
+    [Header("Heart Rate UI")]
+    [Tooltip("Optional Text to display current heart-rate (BPM)")]
+    public Text heartRateText; // assign in inspector (optional)
+
     private float elapsed = 0f;
     private bool running = false;
 
@@ -39,18 +45,30 @@ public class UIManager : MonoBehaviour
 
     private Coroutine parryCoroutine;
 
+    // Keep a reference to the HeartRate instance we subscribed to so we can unsubscribe reliably.
+    private HeartRate heartRateRef;
+
     void Awake()
     {
         if (Instance == null) Instance = this;
         else if (Instance != this) Destroy(gameObject);
+
+        // Initialize running to inspector value; StartTimer will set it explicitly.
+        running = startOnPlay;
+        Debug.Log($"[UIManager] Awake: startOnPlay={startOnPlay} -> running={running}");
     }
 
     void Start()
     {
-        if (startOnPlay) StartTimer();
+        // Make sure timerText exists before starting timer so UI updates immediately
+        EnsureTimerText();
+        // StartTimer kept for explicit call sites, call it to guarantee running is set
+        if (startOnPlay)
+            StartTimer();
 
         EnsureScoreText(); // make sure scoreText exists so AddScore updates visible UI
         EnsureHealthText(); // ensure healthText exists so UpdateHealth works
+        EnsureHeartRateText(); // ensure heartRateText exists so HR is visible
         UpdateUI();
 
         // ensure game over text is hidden initially
@@ -62,12 +80,33 @@ public class UIManager : MonoBehaviour
 
         if (parryActiveCue != null)
             parryActiveCue.SetActive(false);
+
+        // Subscribe to HeartRate updates if available.
+        // Do NOT assign to HeartRate.Instance (its setter is inaccessible). Instead store the found reference.
+        heartRateRef = HeartRate.Instance;
+        if (heartRateRef == null)
+            heartRateRef = FindObjectOfType<HeartRate>();
+
+        if (heartRateRef != null)
+        {
+            heartRateRef.OnHeartRateChanged += OnHeartRateChanged;
+            UpdateHeartRateText(heartRateRef.GetCurrentRate());
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (heartRateRef != null)
+            heartRateRef.OnHeartRateChanged -= OnHeartRateChanged;
     }
 
     void Update()
     {
         if (!running) return;
-        elapsed += Time.deltaTime;
+
+        // Respect user's choice to count with unscaled time (useful if timeScale is set to 0)
+        float delta = useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+        elapsed += delta;
         UpdateTimerText();
     }
 
@@ -75,6 +114,8 @@ public class UIManager : MonoBehaviour
     {
         UpdateTimerText();
         UpdateScoreText();
+        if (heartRateRef != null)
+            UpdateHeartRateText(heartRateRef.GetCurrentRate());
     }
 
     void UpdateTimerText()
@@ -87,12 +128,28 @@ public class UIManager : MonoBehaviour
 
     public void StartTimer()
     {
-        running = true;
-    }
+        if (!running)
+        {
+            running = true;
+            Debug.Log("[UIManager] StartTimer() called -> running=true");
+        }
+        else
+        {
+            Debug.Log("[UIManager] StartTimer() called but timer already running");
+        }
+    }           
 
     public void StopTimer()
     {
-        running = false;
+        if (running)
+        {
+            running = false;
+            Debug.Log("[UIManager] StopTimer() called -> running=false");
+        }
+        else
+        {
+            Debug.Log("[UIManager] StopTimer() called but timer already stopped");
+        }
     }
 
     public void ResetTimer()
@@ -263,7 +320,7 @@ public class UIManager : MonoBehaviour
         GameObject go = new GameObject("ScoreText", typeof(RectTransform), typeof(Text));
         go.transform.SetParent(canvas.transform, false);
         Text t = go.GetComponent<Text>();
-        t.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         t.fontSize = 16;
         t.alignment = TextAnchor.UpperLeft;
         t.color = Color.white;  
@@ -296,7 +353,7 @@ public class UIManager : MonoBehaviour
         GameObject go = new GameObject("HealthText", typeof(RectTransform), typeof(Text));
         go.transform.SetParent(canvas.transform, false);
         Text t = go.GetComponent<Text>();
-        t.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         t.fontSize = 16;
         t.alignment = TextAnchor.UpperLeft;
         t.color = Color.white;
@@ -309,5 +366,79 @@ public class UIManager : MonoBehaviour
 
         Debug.Log("[UIManager] Created fallback healthText at runtime.");
         healthText.text = "HP: 0/0";
+    }
+
+    // Create a fallback timerText in case it's not assigned in the Inspector
+    private void EnsureTimerText()
+    {
+        if (timerText != null) return;
+
+        Canvas canvas = FindObjectOfType<Canvas>();
+        if (canvas == null)
+        {
+            GameObject canvasGO = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas = canvasGO.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        }
+
+        GameObject go = new GameObject("TimerText", typeof(RectTransform), typeof(Text));
+        go.transform.SetParent(canvas.transform, false);
+        Text t = go.GetComponent<Text>();
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.fontSize = 18;
+        t.alignment = TextAnchor.UpperCenter;
+        t.color = Color.white;
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 1);
+        rt.anchorMax = new Vector2(0.5f, 1);
+        rt.pivot = new Vector2(0.5f, 1);
+        rt.anchoredPosition = new Vector2(0, -10);
+        timerText = t;
+
+        Debug.Log("[UIManager] Created fallback timerText at runtime.");
+        UpdateTimerText();
+    }
+
+    // Create a fallback heartRateText in case it's not assigned in the Inspector
+    private void EnsureHeartRateText()
+    {
+        if (heartRateText != null) return;
+
+        Canvas canvas = FindObjectOfType<Canvas>();
+        if (canvas == null)
+        {
+            GameObject canvasGO = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas = canvasGO.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        }
+
+        GameObject go = new GameObject("HeartRateText", typeof(RectTransform), typeof(Text));
+        go.transform.SetParent(canvas.transform, false);
+        Text t = go.GetComponent<Text>();
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.fontSize = 14;
+        t.alignment = TextAnchor.UpperCenter;
+        t.color = Color.red;
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 1);
+        rt.anchorMax = new Vector2(0.5f, 1);
+        rt.pivot = new Vector2(0.5f, 1);
+        rt.anchoredPosition = new Vector2(0, -32); // below timer
+        heartRateText = t;
+
+        Debug.Log("[UIManager] Created fallback heartRateText at runtime.");
+        UpdateHeartRateText(heartRateRef != null ? heartRateRef.GetCurrentRate() : 0f);
+    }
+
+    // Called by HeartRate when value changes
+    private void OnHeartRateChanged(float newRate)
+    {
+        UpdateHeartRateText(newRate);
+    }
+
+    private void UpdateHeartRateText(float rate)
+    {
+        if (heartRateText == null) return;
+        heartRateText.text = $"HR: {Mathf.RoundToInt(rate)} BPM";
     }
 }

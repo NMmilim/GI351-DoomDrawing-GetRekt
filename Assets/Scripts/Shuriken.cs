@@ -8,6 +8,10 @@ public class Shuriken : MonoBehaviour
     public float speed = 6f;
     public float hitRange = 0.3f; // how close to player before it counts as a hit
 
+    // When true the shuriken will scale its speed by the HeartRate multiplier at launch.
+    // If you prefer controlling speed centrally in EnemyController, set this false and adjust there instead.
+    public bool followHeartRate = true;
+
     private Rigidbody2D rb;
     private Transform player;
     private bool used = false; // prevent double-hit processing
@@ -29,7 +33,14 @@ public class Shuriken : MonoBehaviour
 
     public void Launch(Vector2 dir)
     {
-        rb.linearVelocity = dir.normalized * speed;
+        // Apply heart-rate multiplier at launch if enabled.
+        float finalSpeed = speed;
+        if (followHeartRate && HeartRate.Instance != null)
+        {
+            finalSpeed = speed * HeartRate.Instance.GetAttackSpeedMultiplier();
+        }
+
+        rb.linearVelocity = dir.normalized * finalSpeed;
     }
 
     private void Update()

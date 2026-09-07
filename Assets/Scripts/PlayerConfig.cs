@@ -22,6 +22,13 @@ public class PlayerController : MonoBehaviour
     [Header("Input & Dodge")]
     [SerializeField] private float dodgeDuration = 0.35f;
 
+    [Header("HeartRate Recovery")]
+    [Tooltip("Time window (seconds) after taking damage during which a subsequent perfect parry reduces BPM")]
+    [SerializeField] private float hitRecoveryWindow = 3f;
+    [Tooltip("Fraction of the BPM gained from the hit that will be removed by a recovery parry (0..1)")]
+    [Range(0f, 1f)]
+    [SerializeField] private float recoveryAfterHitMultiplier = 0.75f;
+
     // runtime input state
     private float lastParryTime = -10f;
     private int lastParryDir = 0; // -1 left, +1 right
@@ -35,6 +42,16 @@ public class PlayerController : MonoBehaviour
     private PlayerState currentState = PlayerState.Idle;
 
     private EnemyController attackingEnemy;
+
+    // Heart-rate / parry tracking
+    // If a parry was attempted recently but did not succeed, this becomes true so we can apply a "failed parry" HR penalty.
+    private bool lastParryFailed = false;
+    // Multiplier for the window after lastParryTime that counts as a "failed parry" when an attack lands.
+    private const float failedParryWindowMultiplier = 2.0f;
+
+    // Track recent hit info so a later perfect parry can reduce BPM
+    private float lastHitTime = -10f;
+    private int lastHitDamage = 0;
 
     private void Start()
     {
@@ -61,6 +78,9 @@ public class PlayerController : MonoBehaviour
         {
             lastParryTime = Time.time;
             currentState = PlayerState.Parry;
+
+            // reset failed flag until we know outcome
+            lastParryFailed = false;
 
             if (animator != null)
             {
@@ -109,8 +129,15 @@ public class PlayerController : MonoBehaviour
 
         currentHealth -= damage;
 
+        // store recent hit data for potential recovery-on-parry
+        lastHitTime = Time.time;
+        lastHitDamage = damage;
+
         // Update UI health immediately
         UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
+
+        // Heart-rate: register hit taken
+        HeartRate.Instance?.RegisterHitTaken(damage);
 
         if (currentHealth <= 0)
         {
@@ -153,6 +180,9 @@ public class PlayerController : MonoBehaviour
             playerCollider.enabled = false;
         }
 
+        // Heart-rate: set BPM to zero and freeze updates
+        HeartRate.Instance?.OnPlayerDeath();
+
         // Update UI and show game over
         UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
         UIManager.Instance?.ShowLose();
@@ -193,6 +223,33 @@ public class PlayerController : MonoBehaviour
             }
 
             wasParried = true;
+
+            // Heart-rate: successful perfect parry (adrenaline)
+            HeartRate.Instance?.RegisterPerfectParry();
+
+            // If a prior parry attempt had failed, reduce HR a bit on this recovery parry
+            if (lastParryFailed)
+            {
+                float reduceAmount = 5f;
+                if (HeartRate.Instance != null)
+                    reduceAmount = HeartRate.Instance.gainPerFailedParry * 0.5f;
+                HeartRate.Instance?.RegisterRecoveryAfterFailure(reduceAmount);
+                lastParryFailed = false;
+            }
+
+            // If player was recently hit (within window), a perfect parry reduces BPM based on the recent hit
+            if (Time.time - lastHitTime <= hitRecoveryWindow && lastHitDamage > 0)
+            {
+                if (HeartRate.Instance != null)
+                {
+                    float reduceAmount = HeartRate.Instance.gainPerDamage * lastHitDamage * recoveryAfterHitMultiplier;
+                    HeartRate.Instance.RegisterRecoveryAfterFailure(reduceAmount);
+                }
+                // consume the recent hit so it doesn't repeatedly recover
+                lastHitDamage = 0;
+                lastHitTime = -10f;
+            }
+
             return true; // attack was handled
         }
 
@@ -203,6 +260,18 @@ public class PlayerController : MonoBehaviour
             return true; // attack avoided
         }
         */
+
+        // If player pressed parry recently but was outside the strict parry window, treat as a failed parry attempt:
+        if (Time.time - lastParryTime <= parryInputWindow * failedParryWindowMultiplier)
+        {
+            lastParryFailed = true;
+            HeartRate.Instance?.RegisterFailedParry();
+        }
+        else
+        {
+            // not a recent parry attempt
+            lastParryFailed = false;
+        }
 
         Debug.Log($"OnIncomingAttack called. damage={damage}. lastParryDelta={Time.time - lastParryTime}");
 

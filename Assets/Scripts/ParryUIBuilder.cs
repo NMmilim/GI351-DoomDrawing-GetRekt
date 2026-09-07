@@ -86,6 +86,25 @@ public class ParryUIBuilder : MonoBehaviour
         Debug.Log("[ParryUIBuilder] Parry UI created and assigned to local parryFillImage");
     }
 
+    void Start()
+    {
+        // Register created UI elements with UIManager so its parry API works.
+        if (parryFillImage == null) return;
+
+        if (UIManager.Instance != null)
+        {
+            // Only overwrite if UIManager doesn't already have assigned references.
+            if (UIManager.Instance.parryFillImage == null)
+                UIManager.Instance.parryFillImage = parryFillImage;
+
+            if (UIManager.Instance.parryActiveCue == null)
+                UIManager.Instance.parryActiveCue = parryActiveCue;
+
+            // Ensure UI starts hidden/clean
+            UIManager.Instance.StopParryFill();
+        }
+    }
+
     private void ConfigureFillImage(Image img)
     {
         if (img == null) return;
