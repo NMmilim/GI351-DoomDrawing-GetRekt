@@ -652,7 +652,12 @@ public class UIManager : MonoBehaviour
     {
         comboCount = 0;
         UpdateComboText();
-        Debug.Log("[UIManager] Combo reset -> multiplier back to 1x");
+
+        // NEW: drop score to zero when combo breaks
+        score = 0;
+        UpdateScoreText();
+
+        Debug.Log("[UIManager] Combo reset -> score dropped to 0");
     }
 
     private void UpdateComboText()
@@ -669,6 +674,7 @@ public class UIManager : MonoBehaviour
         if (combo < 8) return 4;
         return maxComboMultiplier; // cap at max
     }
+
 
 
 

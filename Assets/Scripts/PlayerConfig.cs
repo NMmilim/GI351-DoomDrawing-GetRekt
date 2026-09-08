@@ -220,6 +220,9 @@ public class PlayerController : MonoBehaviour
     public bool OnIncomingAttack(int damage, EnemyController attacker, out bool wasParried)
     {
         wasParried = false;
+        UIManager.Instance?.AddCombo();
+        UIManager.Instance?.ResetCombo();
+
 
         // --- SUCCESSFUL PARRY ---
         if (Time.time - lastParryTime <= parryInputWindow)
