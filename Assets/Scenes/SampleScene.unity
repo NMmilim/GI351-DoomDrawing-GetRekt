@@ -1859,6 +1859,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: shurikenTest
       objectReference: {fileID: 0}
+    - target: {fileID: 309751621344335115, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8600780905102426778, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
       propertyPath: m_LocalPosition.x
       value: -3.9664
