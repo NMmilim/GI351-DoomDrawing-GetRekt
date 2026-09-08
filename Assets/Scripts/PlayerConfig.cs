@@ -300,6 +300,38 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"OnIncomingAttack called. damage={damage}. lastParryDelta={Time.time - lastParryTime}");
 
         // Not handled: caller (StrikeHitbox / Shuriken) should call TakeDamage(damage)
+        if (Time.time - lastParryTime <= parryInputWindow)
+        {
+            // ... existing parry success logic ...
+
+            wasParried = true;
+
+            HeartRate.Instance?.RegisterPerfectParry();
+            UIManager.Instance?.OnPerfectParry();
+
+            // NEW: increment combo on successful parry
+            UIManager.Instance?.AddCombo();
+
+            return true;
+        }
+
+        // Failed parry or damage
+        if (Time.time - lastParryTime <= parryInputWindow * failedParryWindowMultiplier)
+        {
+            lastParryFailed = true;
+            HeartRate.Instance?.RegisterFailedParry();
+
+            // NEW: reset combo on failed parry
+            UIManager.Instance?.ResetCombo();
+        }
+        else
+        {
+            lastParryFailed = false;
+
+            // NEW: reset combo when taking damage
+            UIManager.Instance?.ResetCombo();
+        }
+
         return false;
     }
 

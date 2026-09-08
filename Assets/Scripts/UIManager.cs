@@ -501,11 +501,24 @@ public class UIManager : MonoBehaviour
     public Text comboText;   // assign in inspector (optional)
     private int comboCount = 0;
 
+    // Threshold for score bonus (e.g., every 5 combos adds bonus)
+    [Tooltip("Award bonus score every N successful combos")]
+    public int comboBonusThreshold = 5;
+    [Tooltip("Bonus points awarded when threshold is reached")]
+    public int comboBonusPoints = 10;
+
     public void AddCombo()
     {
         comboCount++;
         Debug.Log($"[UIManager] AddCombo() -> comboCount={comboCount}");
         UpdateComboText();
+
+        // Award bonus when streak hits threshold
+        if (comboBonusThreshold > 0 && comboCount % comboBonusThreshold == 0)
+        {
+            AddScore(comboBonusPoints, true);
+            Debug.Log($"[UIManager] Combo streak bonus! +{comboBonusPoints} points");
+        }
     }
 
     public void ResetCombo()
@@ -520,5 +533,6 @@ public class UIManager : MonoBehaviour
         if (comboText != null)
             comboText.text = "Combo: " + comboCount.ToString();
     }
+
 
 }
