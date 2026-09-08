@@ -238,40 +238,70 @@ public class PlayerController : MonoBehaviour
 
             wasParried = true;
 
-            // Heart-rate: successful perfect parry
+            // Heart-rate: successful perfect parry (adrenaline)
             HeartRate.Instance?.RegisterPerfectParry();
 
-            // NEW: increment combo on successful parry
-            UIManager.Instance?.AddCombo();
+            // UI: award parry points / temporary multiplier
+            UIManager.Instance?.OnPerfectParry();
 
-            // existing recovery/adrenaline logic...
-            // (leave your current code here)
+            // If a prior parry attempt had failed, reduce HR a bit on this recovery parry
+            if (lastParryFailed)
+            {
+                float reduceAmount = 5f;
+                if (HeartRate.Instance != null)
+                    reduceAmount = HeartRate.Instance.gainPerFailedParry * 0.5f;
+                HeartRate.Instance?.RegisterRecoveryAfterFailure(reduceAmount);
+                lastParryFailed = false;
+            }
+
+            // If player was recently hit (within window), a perfect parry reduces BPM based on the recent hit
+            if (Time.time - lastHitTime <= hitRecoveryWindow && lastHitDamage > 0)
+            {
+                if (HeartRate.Instance != null)
+                {
+                    float reduceAmount = HeartRate.Instance.gainPerDamage * lastHitDamage * recoveryAfterHitMultiplier;
+                    HeartRate.Instance.RegisterRecoveryAfterFailure(reduceAmount);
+                }
+                // consume the recent hit so it doesn't repeatedly recover
+                lastHitDamage = 0;
+                lastHitTime = -10f;
+
+                // Optionally start an adrenaline surge after a short delay following recovery parry
+                if (startSurgeOnRecoveryParry)
+                {
+                    if (adrenalineCoroutine != null) StopCoroutine(adrenalineCoroutine);
+                    adrenalineCoroutine = StartCoroutine(AdrenalineSurgeRoutine());
+                }
+            }
 
             return true; // attack was handled
         }
 
-        // If player pressed parry recently but was outside the strict parry window
+        // --- DODGE SYSTEM (planned, commented out) ---
+        /*
+        if (isDodging)
+        {
+            return true; // attack avoided
+        }
+        */
+
+        // If player pressed parry recently but was outside the strict parry window, treat as a failed parry attempt:
         if (Time.time - lastParryTime <= parryInputWindow * failedParryWindowMultiplier)
         {
             lastParryFailed = true;
             HeartRate.Instance?.RegisterFailedParry();
-
-            // NEW: reset combo on failed parry
-            UIManager.Instance?.ResetCombo();
         }
         else
         {
+            // not a recent parry attempt
             lastParryFailed = false;
-
-            // NEW: reset combo when taking damage
-            UIManager.Instance?.ResetCombo();
         }
 
         Debug.Log($"OnIncomingAttack called. damage={damage}. lastParryDelta={Time.time - lastParryTime}");
 
-        return false; // not handled, caller should apply damage
+        // Not handled: caller (StrikeHitbox / Shuriken) should call TakeDamage(damage)
+        return false;
     }
-
 
     // Adrenaline surge: after a recovery parry we optionally add BPM over time to simulate adrenaline.
     private IEnumerator AdrenalineSurgeRoutine()
