@@ -533,6 +533,35 @@ public class UIManager : MonoBehaviour
         if (comboText != null)
             comboText.text = "Combo: " + comboCount.ToString();
     }
+    private void EnsureComboText()
+    {
+        if (comboText != null) return;
+
+        Canvas canvas = FindObjectOfType<Canvas>();
+        if (canvas == null)
+        {
+            GameObject canvasGO = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas = canvasGO.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        }
+
+        GameObject go = new GameObject("ComboText", typeof(RectTransform), typeof(Text));
+        go.transform.SetParent(canvas.transform, false);
+        Text t = go.GetComponent<Text>();
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.fontSize = 16;
+        t.alignment = TextAnchor.UpperLeft;
+        t.color = Color.yellow;
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0, 1);
+        rt.anchorMax = new Vector2(0, 1);
+        rt.pivot = new Vector2(0, 1);
+        rt.anchoredPosition = new Vector2(10, -50); // below health
+        comboText = t;
+
+        Debug.Log("[UIManager] Created fallback comboText at runtime.");
+        UpdateComboText();
+    }
 
 
 }
