@@ -624,34 +624,35 @@ public class UIManager : MonoBehaviour
         heartRateText.text = $"HR: {Mathf.RoundToInt(rate)} BPM";
     }
     [Header("Combo UI")]
-    public Text comboText;   // assign in inspector (optional)
+    public Text comboText;   // assign in inspector
     private int comboCount = 0;
 
-    // Threshold for score bonus (e.g., every 5 combos adds bonus)
-    [Tooltip("Award bonus score every N successful combos")]
-    public int comboBonusThreshold = 5;
-    [Tooltip("Bonus points awarded when threshold is reached")]
-    public int comboBonusPoints = 10;
+    // Combo multiplier settings
+    [Tooltip("Maximum multiplier based on combo streak")]
+    public int maxComboMultiplier = 8;   // cap at 8x
+
+    [Tooltip("Base points per perfect press")]
+    public int basePressPoints = 100;
 
     public void AddCombo()
     {
         comboCount++;
-        Debug.Log($"[UIManager] AddCombo() -> comboCount={comboCount}");
         UpdateComboText();
 
-        // Award bonus when streak hits threshold
-        if (comboBonusThreshold > 0 && comboCount % comboBonusThreshold == 0)
-        {
-            AddScore(comboBonusPoints, true);
-            Debug.Log($"[UIManager] Combo streak bonus! +{comboBonusPoints} points");
-        }
+        // Calculate multiplier based on streak
+        int multiplier = CalculateComboMultiplier(comboCount);
+
+        // Award score using base points × multiplier
+        AddScore(basePressPoints * multiplier, false);
+
+        Debug.Log($"[UIManager] Combo {comboCount} -> Multiplier {multiplier}x -> +{basePressPoints * multiplier} points");
     }
 
     public void ResetCombo()
     {
         comboCount = 0;
-        Debug.Log("[UIManager] ResetCombo() -> comboCount=0");
         UpdateComboText();
+        Debug.Log("[UIManager] Combo reset -> multiplier back to 1x");
     }
 
     private void UpdateComboText()
@@ -659,6 +660,16 @@ public class UIManager : MonoBehaviour
         if (comboText != null)
             comboText.text = "Combo: " + comboCount.ToString();
     }
+
+    private int CalculateComboMultiplier(int combo)
+    {
+        // Simple progression: 1x at start, then 2x, 4x, 8x...
+        if (combo < 2) return 1;
+        if (combo < 4) return 2;
+        if (combo < 8) return 4;
+        return maxComboMultiplier; // cap at max
+    }
+
 
 
 }
