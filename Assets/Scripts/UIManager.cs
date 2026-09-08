@@ -308,11 +308,15 @@ public class UIManager : MonoBehaviour
     }
 
     // Show the "YOU LOSE" message and stop the timer
+    public void PreserveFinalScore()
+    {
+        finalScore = score;
+        Debug.Log("[UIManager] Final score preserved at " + finalScore);
+    }
+
     public void ShowLose()
     {
-        // Preserve the latest score before death
-        finalScore = score;
-
+        // Use preserved finalScore, not live score
         if (gameOverText != null)
         {
             gameOverText.text = "YOU LOSE\nFinal Score: " + finalScore.ToString();
@@ -320,11 +324,6 @@ public class UIManager : MonoBehaviour
         }
 
         StopTimer();
-    }
-    public void PreserveFinalScore()
-    {
-        finalScore = score;
-        Debug.Log("[UIManager] Final score preserved at " + finalScore);
     }
 
 
@@ -659,12 +658,15 @@ public class UIManager : MonoBehaviour
         comboCount = 0;
         UpdateComboText();
 
-        // Reset score when combo breaks
+        // Reset live score only
         score = 0;
         UpdateScoreText();
 
-        Debug.Log("[UIManager] Combo reset -> score dropped to 0");
+        Debug.Log("[UIManager] Combo reset -> score dropped to 0 (finalScore preserved)");
     }
+
+
+
 
 
     private void UpdateComboText()
@@ -682,6 +684,7 @@ public class UIManager : MonoBehaviour
         return maxComboMultiplier; // cap at max
     }
 
+   
 
 
 

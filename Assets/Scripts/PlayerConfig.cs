@@ -161,7 +161,7 @@ public class PlayerController : MonoBehaviour
         {
             PlayerHit();
         }
-        if (currentHealth <= 1)
+        if (currentHealth == 1)
         {
             // Preserve score when player is at critical health
             UIManager.Instance?.PreserveFinalScore();
@@ -187,6 +187,7 @@ public class PlayerController : MonoBehaviour
     {
         currentHealth = 0;
         currentState = PlayerState.Dead;
+
 
         if (animator != null)
         {
