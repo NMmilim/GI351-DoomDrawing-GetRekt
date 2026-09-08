@@ -40,7 +40,22 @@ public class Shuriken : MonoBehaviour
             finalSpeed = speed * HeartRate.Instance.GetAttackSpeedMultiplier();
         }
 
-        rb.linearVelocity = dir.normalized * finalSpeed;
+        // use Rigidbody2D.velocity (correct API) to set linear velocity
+        if (rb != null)
+            rb.linearVelocity = dir.normalized * finalSpeed;
+    }
+
+    // Stop movement and disable further processing. Called on game over.
+    public void StopMotion()
+    {
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
+
+        // prevent Update/OnTrigger from processing further
+        enabled = false;
     }
 
     private void Update()

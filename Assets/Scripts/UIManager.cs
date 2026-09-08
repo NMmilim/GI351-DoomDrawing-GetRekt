@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Serialization;
+using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem; // added for keyboard space check
 
 // Simple UI manager: shows elapsed time and score (replaces kills) and player HP.
 public class UIManager : MonoBehaviour
@@ -60,6 +62,12 @@ public class UIManager : MonoBehaviour
     private int savedMultiplier = 1;
     private Coroutine parryMultiplierCoroutine;
 
+    // Remember previous timescale to restore if needed
+    private float previousTimeScale = 1f;
+
+    // Whether the game is in a game-over state (only allow restart when true)
+    private bool isGameOver = false;
+
     void Awake()
     {
         if (Instance == null) Instance = this;
@@ -114,12 +122,29 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
-        if (!running) return;
+        // Allow the Update loop to still check for restart input when the game is over.
+        // Previously Update returned early when 'running' was false which prevented restart input after StopTimer() was called.
+        if (!running && !isGameOver) return;
 
         // Respect user's choice to count with unscaled time (useful if timeScale is set to 0)
         float delta = useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
-        elapsed += delta;
+        if (running) // only accumulate elapsed while running
+            elapsed += delta;
         UpdateTimerText();
+
+        // Quick restart: only allow pressing Space to restart when game is over
+        if (isGameOver)
+        {
+            if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                RestartGame();
+            }
+            else if (Keyboard.current == null && Input.GetKeyDown(KeyCode.Space))
+            {
+                // fallback to legacy Input if new InputSystem not present
+                RestartGame();
+            }
+        }
     }
 
     void UpdateUI()
@@ -289,7 +314,108 @@ public class UIManager : MonoBehaviour
             gameOverText.gameObject.SetActive(true);
         }
 
+        // mark game over so restart input is accepted
+        isGameOver = true;
+
+        // Stop gameplay (pause physics, stop projectiles, pause music)
+        StopGameplay();
+
         StopTimer();
+    }
+                
+    // Stops gameplay: pause time, stop shurikens/enemies/hitboxes and pause music.
+    private void StopGameplay()
+    {
+        // already stopped?
+        if (Mathf.Approximately(Time.timeScale, 0f)) return;
+
+        previousTimeScale = Time.timeScale;
+        Time.timeScale = 0f; // freeze physics and time-based updates
+
+        // Pause music if BeatHit audio is present
+        if (BeatHit.Instance != null && BeatHit.Instance.musicSource != null)
+        {
+            try { BeatHit.Instance.musicSource.Pause(); } catch { }
+        }
+
+        // Disable enemy controllers
+        var enemies = FindObjectsOfType<EnemyController>();
+        foreach (var e in enemies)
+        {
+            if (e != null) e.enabled = false;
+        }
+
+        // Disable strike hitboxes
+        var strikes = FindObjectsOfType<StrikeHitbox>();
+        foreach (var s in strikes)
+        {
+            if (s != null) s.enabled = false;
+        }
+
+        // Stop all shurikens (zero velocity + disable script)
+        var shurikens = FindObjectsOfType<Shuriken>();
+        foreach (var s in shurikens)
+        {
+            if (s != null) s.StopMotion();
+        }
+
+        Debug.Log("[UIManager] StopGameplay() called: frozen time, paused music, disabled enemies/hitboxes, stopped shurikens.");
+    }
+
+    // Restart the current scene (clear state). Call from UI button or press Space when Game Over shown.
+    public void RestartGame()
+    {
+        if (!isGameOver)
+        {
+            Debug.Log("[UIManager] RestartGame() ignored because game is not over.");
+            return;
+        }
+
+        // prevent double-restart
+        isGameOver = false;
+
+        // restore time scale before reload to ensure scene loads normally
+        Time.timeScale = 1f;
+
+        // Unfreeze heart rate (if it was frozen) and reset to baseline
+        if (HeartRate.Instance != null)
+        {
+            HeartRate.Instance.UnfreezeAndResetToBaseline();
+        }
+
+        // Unpause music if needed
+        if (BeatHit.Instance != null && BeatHit.Instance.musicSource != null)
+        {
+            try { BeatHit.Instance.musicSource.UnPause(); } catch { }
+        }
+
+        // reload active scene to get a clean state
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    // Optional helper to resume (not typically used; RestartGame preferred)
+    public void ResumeGameplay()
+    {
+        Time.timeScale = previousTimeScale == 0f ? 1f : previousTimeScale;
+
+        if (BeatHit.Instance != null && BeatHit.Instance.musicSource != null)
+        {
+            try { BeatHit.Instance.musicSource.UnPause(); } catch { }
+        }
+
+        var enemies = FindObjectsOfType<EnemyController>();
+        foreach (var e in enemies)
+        {
+            if (e != null) e.enabled = true;
+        }
+
+        var strikes = FindObjectsOfType<StrikeHitbox>();
+        foreach (var s in strikes)
+        {
+            if (s != null) s.enabled = true;
+        }
+
+        Debug.Log("[UIManager] ResumeGameplay() called: restored timeScale and re-enabled scripts.");
     }
 
     // Update the on-screen HP display
@@ -532,35 +658,6 @@ public class UIManager : MonoBehaviour
     {
         if (comboText != null)
             comboText.text = "Combo: " + comboCount.ToString();
-    }
-    private void EnsureComboText()
-    {
-        if (comboText != null) return;
-
-        Canvas canvas = FindObjectOfType<Canvas>();
-        if (canvas == null)
-        {
-            GameObject canvasGO = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            canvas = canvasGO.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        }
-
-        GameObject go = new GameObject("ComboText", typeof(RectTransform), typeof(Text));
-        go.transform.SetParent(canvas.transform, false);
-        Text t = go.GetComponent<Text>();
-        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        t.fontSize = 16;
-        t.alignment = TextAnchor.UpperLeft;
-        t.color = Color.yellow;
-        RectTransform rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0, 1);
-        rt.anchorMax = new Vector2(0, 1);
-        rt.pivot = new Vector2(0, 1);
-        rt.anchoredPosition = new Vector2(10, -50); // below health
-        comboText = t;
-
-        Debug.Log("[UIManager] Created fallback comboText at runtime.");
-        UpdateComboText();
     }
 
 
