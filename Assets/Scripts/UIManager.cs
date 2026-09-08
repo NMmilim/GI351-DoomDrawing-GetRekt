@@ -8,6 +8,8 @@ using UnityEngine.InputSystem; // added for keyboard space check
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
+    private int finalScore = 0;
+
 
     [Header("UI References")]
     public Text timerText;    // assign in inspector
@@ -308,21 +310,25 @@ public class UIManager : MonoBehaviour
     // Show the "YOU LOSE" message and stop the timer
     public void ShowLose()
     {
+        // Preserve the latest score before death
+        finalScore = score;
+
         if (gameOverText != null)
         {
-            gameOverText.text = "YOU LOSE";
+            gameOverText.text = "YOU LOSE\nFinal Score: " + finalScore.ToString();
             gameOverText.gameObject.SetActive(true);
         }
 
-        // mark game over so restart input is accepted
-        isGameOver = true;
-
-        // Stop gameplay (pause physics, stop projectiles, pause music)
-        StopGameplay();
-
         StopTimer();
     }
-                
+    public void PreserveFinalScore()
+    {
+        finalScore = score;
+        Debug.Log("[UIManager] Final score preserved at " + finalScore);
+    }
+
+
+
     // Stops gameplay: pause time, stop shurikens/enemies/hitboxes and pause music.
     private void StopGameplay()
     {
@@ -653,12 +659,13 @@ public class UIManager : MonoBehaviour
         comboCount = 0;
         UpdateComboText();
 
-        // NEW: drop score to zero when combo breaks
+        // Reset score when combo breaks
         score = 0;
         UpdateScoreText();
 
         Debug.Log("[UIManager] Combo reset -> score dropped to 0");
     }
+
 
     private void UpdateComboText()
     {
@@ -674,6 +681,7 @@ public class UIManager : MonoBehaviour
         if (combo < 8) return 4;
         return maxComboMultiplier; // cap at max
     }
+
 
 
 

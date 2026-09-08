@@ -161,6 +161,12 @@ public class PlayerController : MonoBehaviour
         {
             PlayerHit();
         }
+        if (currentHealth <= 1)
+        {
+            // Preserve score when player is at critical health
+            UIManager.Instance?.PreserveFinalScore();
+        }
+
     }
 
     private void PlayerHit()
@@ -174,6 +180,7 @@ public class PlayerController : MonoBehaviour
 
         Invoke(nameof(SetAnimationIdle), 0.3f);
     }
+
 
     // DEATH
     private void Die()
@@ -325,4 +332,5 @@ public class PlayerController : MonoBehaviour
 
         adrenalineCoroutine = null;
     }
+
 }
