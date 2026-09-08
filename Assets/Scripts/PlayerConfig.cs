@@ -22,6 +22,11 @@ public class PlayerController : MonoBehaviour
 
     [Header("Input & Dodge")]
     [SerializeField] private float dodgeDuration = 0.35f;
+            
+    [Header("Block / Parry Cooldown")]
+    [Tooltip("Minimum seconds between allowed block/parry inputs to prevent spamming")]
+    public float blockCooldown = 0.25f;
+    private float lastBlockTime = -Mathf.Infinity;
 
     [Header("Audio (optional)")]
     [Tooltip("Played when player presses block key (space)")]
@@ -97,26 +102,36 @@ public class PlayerController : MonoBehaviour
         if (Keyboard.current == null) return;
         if (currentState == PlayerState.Dead) return;
 
-        // --- PARRY INPUT ---
+        // --- PARRY INPUT (with cooldown to prevent spam) ---
         if (Keyboard.current.spaceKey.wasPressedThisFrame)
         {
-            lastParryTime = Time.time;
-            currentState = PlayerState.Parry;
-
-            // reset failed flag until we know outcome
-            lastParryFailed = false;
-
-            if (animator != null)
+            // enforce block/parry cooldown
+            if (Time.time - lastBlockTime < blockCooldown)
             {
-                animator.SetTrigger("Parry");
+                // still provide optional feedback: do not trigger parry
+                Debug.Log("[PlayerController] Block/parry ignored - on cooldown.");
             }
+            else
+            {
+                lastBlockTime = Time.time;
+                lastParryTime = Time.time;
+                currentState = PlayerState.Parry;
 
-            // play block sound on press
-            if (blockClip != null)
-                AudioSource.PlayClipAtPoint(blockClip, transform.position, audioVolume);
+                // reset failed flag until we know outcome
+                lastParryFailed = false;
 
-            // Reset back to idle after short delay
-            Invoke(nameof(SetAnimationIdle), parryInputWindow);
+                if (animator != null)
+                {
+                    animator.SetTrigger("Parry");
+                }
+
+                // play block sound on press (optional)
+                if (blockClip != null)
+                    AudioSource.PlayClipAtPoint(blockClip, transform.position, audioVolume);
+
+                // Reset back to idle after short delay
+                Invoke(nameof(SetAnimationIdle), parryInputWindow);
+            }
         }
 
         // --- DODGE SYSTEM (planned, commented out) ---

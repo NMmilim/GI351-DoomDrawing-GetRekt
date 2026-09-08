@@ -32,6 +32,40 @@ public class UIManager : MonoBehaviour
     [Range(0f, 1f)]
     public float sfxVolume = 0.9f;
 
+    // --- Color / Thresholds for contextual text tinting ----------
+    [Header("Contextual Text Colors")]
+    [Tooltip("Default color for UI texts")]
+    public Color defaultTextColor = Color.white;
+
+    [Header("HP Colors & Thresholds")]
+    [Tooltip("Color when player HP is very low (<= hpLowThreshold)")]
+    public Color hpLowColor = Color.red;
+    [Tooltip("Color when player HP is mid (<= hpMidThreshold)")]
+    public Color hpMidColor = Color.yellow;
+    [Tooltip("Color when player HP is normal (>)")]
+    public Color hpNormalColor = Color.white;
+    [Tooltip("HP threshold considered 'low' (inclusive)")]
+    public int hpLowThreshold = 1;
+    [Tooltip("HP threshold considered 'mid' (inclusive)")]
+    public int hpMidThreshold = 3;
+
+    [Header("Heart Rate Colors & Thresholds")]
+    [Tooltip("Color when BPM is considered normal")]
+    public Color hrNormalColor = Color.white;
+    [Tooltip("Color when BPM is fast")]
+    public Color hrFastColor = Color.yellow;
+    [Tooltip("Color when BPM is very high")]
+    public Color hrHighColor = Color.red;
+    [Tooltip("Color when BPM is zero (player dead)")]
+    public Color hrZeroColor = Color.black;
+    [Tooltip("BPM min for normal range (unused lower bound)")]
+    public int hrNormalMin = 70;
+    [Tooltip("BPM max for normal range")]
+    public int hrNormalMax = 90;
+    [Tooltip("BPM max for fast range (<= this is fast). Above this is high)")]
+    public int hrFastMax = 130;
+    // --------------------------------------------------------------
+
     private float elapsed = 0f;
     private bool running = false;
 
@@ -44,6 +78,10 @@ public class UIManager : MonoBehaviour
 
     // HeartRate reference (optional)
     private HeartRate heartRateRef;
+
+    // track last known health so UI can react
+    private int currentHealth = 0;
+    private int currentMaxHealth = 1;
 
     // Allow restart only after game over
     private bool isGameOver = false;
@@ -67,12 +105,18 @@ public class UIManager : MonoBehaviour
             heartRateRef = FindObjectOfType<HeartRate>();
         if (heartRateRef != null)
         {
-            heartRateRef.OnHeartRateChanged += UpdateHeartRateText;
+            heartRateRef.OnHeartRateChanged += OnHeartRateChanged;
             // initialize display
-            UpdateHeartRateText(heartRateRef.GetCurrentRate());
+            OnHeartRateChanged(heartRateRef.GetCurrentRate());
         }
 
         UpdateUI();
+
+        // ensure non-changing UI texts use default color
+        if (scoreText != null) scoreText.color = defaultTextColor;
+        if (comboText != null) comboText.color = defaultTextColor;
+        if (timerText != null) timerText.color = defaultTextColor;
+        if (gameOverText != null) gameOverText.color = defaultTextColor;
 
         if (gameOverText != null)
             gameOverText.gameObject.SetActive(false);
@@ -84,7 +128,7 @@ public class UIManager : MonoBehaviour
     void OnDestroy()
     {
         if (heartRateRef != null)
-            heartRateRef.OnHeartRateChanged -= UpdateHeartRateText;
+            heartRateRef.OnHeartRateChanged -= OnHeartRateChanged;
     }
 
     void Update()
@@ -135,6 +179,7 @@ public class UIManager : MonoBehaviour
     {
         if (scoreText != null)
             scoreText.text = "Score: " + score.ToString();
+        // Score text color does not change
     }
 
     // --- Combo ---
@@ -249,6 +294,13 @@ public class UIManager : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
+    // Heart-rate change handler (subscribed in Start)
+    private void OnHeartRateChanged(float rate)
+    {
+        UpdateHeartRateText(rate);
+        ApplyContextualTextColor();
+    }
+
     // --- Heart Rate UI ---
     private void UpdateHeartRateText(float rate)
     {
@@ -256,11 +308,53 @@ public class UIManager : MonoBehaviour
         heartRateText.text = $"HR: {Mathf.RoundToInt(rate)} BPM";
     }
 
+    // Apply color independently to HP and Heartbeat UI based on specified thresholds
+    private void ApplyContextualTextColor()
+    {
+        // Determine HP color
+        Color hpColor = hpNormalColor;
+        if (currentHealth <= hpLowThreshold) hpColor = hpLowColor;
+        else if (currentHealth <= hpMidThreshold) hpColor = hpMidColor;
+        else hpColor = hpNormalColor;
+
+        // Determine HR color
+        float rate = -1f;
+        if (heartRateRef != null)
+            rate = heartRateRef.GetCurrentRate();
+        else if (heartRateText != null)
+        {
+            // fallback parsing (extract digits)
+            string txt = heartRateText.text;
+            string digits = new string(System.Array.FindAll(txt.ToCharArray(), c => char.IsDigit(c)));
+            if (!string.IsNullOrEmpty(digits))
+            {
+                int parsed;
+                if (int.TryParse(digits, out parsed)) rate = parsed;
+            }
+        }
+
+        Color hrColor = hrNormalColor;
+        if (rate <= 0f) hrColor = hrZeroColor;               // 0 BPM -> special color (dead)
+        else if (rate >= hrFastMax) hrColor = hrHighColor;  // 130+
+        else if (rate > hrNormalMax && rate <= hrFastMax) hrColor = hrFastColor; // 91-130
+        else hrColor = hrNormalColor; // 70-90 and below
+
+        // APPLY colors independently
+        if (healthText != null) healthText.color = hpColor;
+        if (heartRateText != null) heartRateText.color = hrColor;
+    }
+
     // --- Health ---
     public void UpdateHealth(int current, int max)
     {
+        currentHealth = current;
+        currentMaxHealth = Mathf.Max(1, max);
+
         if (healthText != null)
             healthText.text = $"HP: {current}/{max}";
+
+        // update HP color whenever health changes
+        ApplyContextualTextColor();
     }
 
     private void UpdateUI()
@@ -270,5 +364,6 @@ public class UIManager : MonoBehaviour
         UpdateComboText();
         if (heartRateRef != null)
             UpdateHeartRateText(heartRateRef.GetCurrentRate());
+        ApplyContextualTextColor();
     }
 }
