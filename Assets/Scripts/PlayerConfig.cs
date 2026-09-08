@@ -161,28 +161,22 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log($"TakeDamage called. dmg={damage} currentHealth(before)={currentHealth}");
 
-        // If this hit will kill the player, preserve the current score before applying damage
-        if (damage >= currentHealth)
-        {
-            UIManager.Instance?.PreserveFinalScore();
-            UIManager.Instance?.EnablePreserveMode();
-        }
-
+        // Lose HP
         currentHealth -= damage;
 
-        // store recent hit data for potential recovery-on-parry
         lastHitTime = Time.time;
         lastHitDamage = damage;
 
-        // Update UI health immediately
         UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
 
-        // Heart-rate: register hit taken
         HeartRate.Instance?.RegisterHitTaken(damage);
 
-        // play hurt sound (optional)
         if (hurtClip != null)
             AudioSource.PlayClipAtPoint(hurtClip, transform.position, audioVolume);
+
+        // Reset current score and combo.
+        // Best score is NOT affected.
+        UIManager.Instance?.ResetCombo();
 
         if (currentHealth <= 0)
         {
@@ -191,12 +185,6 @@ public class PlayerController : MonoBehaviour
         else
         {
             PlayerHit();
-
-            // When player reaches last life, enable preserve mode (snapshot already handled on lethal-check above)
-            if (currentHealth == 1)
-            {
-                UIManager.Instance?.EnablePreserveMode();
-            }
         }
     }
 
@@ -317,21 +305,15 @@ public class PlayerController : MonoBehaviour
         {
             lastParryFailed = true;
             HeartRate.Instance?.RegisterFailedParry();
-
-            // NEW: reset combo on failed parry
-            UIManager.Instance?.ResetCombo();
         }
         else
         {
             lastParryFailed = false;
-
-            // NEW: reset combo when taking damage
-            UIManager.Instance?.ResetCombo();
         }
 
         Debug.Log($"OnIncomingAttack called. damage={damage}. lastParryDelta={Time.time - lastParryTime}");
 
-        return false; // not handled, caller should apply damage
+        return false;
     }
 
     // Adrenaline surge: after a recovery parry we optionally add BPM over time to simulate adrenaline.

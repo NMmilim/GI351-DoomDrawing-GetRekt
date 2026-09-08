@@ -8,8 +8,8 @@ public class UIManager : MonoBehaviour
     public static UIManager Instance { get; private set; }
 
     private int score = 0;
-    private int finalScore = 0;
-    private bool preserveMode = false; // true when player is on last life
+    private int bestScore = 0;
+
 
     [Header("UI References")]
     public Text timerText;
@@ -99,6 +99,7 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
+        //bestScore = PlayerPrefs.GetInt("BestScore", 0); saved progress even closed the game, but for now we want to reset every time you closed the game
         // hook heart rate UI if present
         heartRateRef = HeartRate.Instance;
         if (heartRateRef == null)
@@ -171,8 +172,22 @@ public class UIManager : MonoBehaviour
     public void AddScore(int amount = 1)
     {
         score += amount;
+
+        // Save the highest score reached during this run.
+        if (score > bestScore)
+        {
+            bestScore = score;
+
+            //PlayerPrefs.SetInt("BestScore", bestScore); this for saving progress
+            //  PlayerPrefs.Save(); this for saving progress, i want it reset every time you closed the game, so i commented it out
+
+            Debug.Log("[UIManager] NEW BEST SCORE: " + bestScore);
+        }
+
         UpdateScoreText();
     }
+
+ 
 
     private void UpdateScoreText()
     {
@@ -198,16 +213,10 @@ public class UIManager : MonoBehaviour
         comboCount = 0;
         UpdateComboText();
 
-        if (!preserveMode)
-        {
-            score = 0;
-            UpdateScoreText();
-            Debug.Log("[UIManager] Combo reset -> score dropped to 0");
-        }
-        else
-        {
-            Debug.Log("[UIManager] Combo reset ignored (preserve mode active)");
-        }
+        score = 0;
+        UpdateScoreText();
+
+        Debug.Log("[UIManager] Combo reset -> score dropped to 0");
     }
 
     private void UpdateComboText()
@@ -224,29 +233,20 @@ public class UIManager : MonoBehaviour
         return maxComboMultiplier;
     }
 
-    // --- Preserve Mode ---
-    public void EnablePreserveMode()
-    {
-        preserveMode = true;
-        Debug.Log("[UIManager] Preserve mode enabled (last life)");
-    }
 
-    // snapshot current score for display after death (call BEFORE lethal hit is applied)
-    public void PreserveFinalScore()
-    {
-        finalScore = score;
-        Debug.Log("[UIManager] Final score preserved at " + finalScore);
-    }
 
     public void ShowLose()
     {
         if (gameOverText != null)
         {
-            gameOverText.text = "YOU LOSE\nFinal Score: " + finalScore.ToString();
+            gameOverText.text =
+                "YOU LOSE\n\n" +
+                "Best Score: " + bestScore;
+
             gameOverText.gameObject.SetActive(true);
         }
 
-        // Stop background music (if BeatHit present)
+        // Stop background music
         if (BeatHit.Instance != null && BeatHit.Instance.musicSource != null)
         {
             try
@@ -259,17 +259,18 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        // Play game over one-shot SFX at camera position (if assigned)
+        // Game over SFX
         if (gameOverClip != null)
         {
             Vector3 pos = Vector3.zero;
-            if (Camera.main != null) pos = Camera.main.transform.position;
+
+            if (Camera.main != null)
+                pos = Camera.main.transform.position;
+
             AudioSource.PlayClipAtPoint(gameOverClip, pos, sfxVolume);
         }
 
-        // enable game-over state so Update will handle restart input
         isGameOver = true;
-
         StopTimer();
     }
 

@@ -264,7 +264,7 @@ public class EnemyController : MonoBehaviour
         // do not attack if game is over
         if (UIManager.Instance != null && UIManager.Instance.IsGameOver)
         {
-            Debug.Log($"[EnemyController:{name}] Attack skipped: game over.");
+         //   Debug.Log($"[EnemyController:{name}] Attack skipped: game over.");
             return;
         }
 
@@ -301,7 +301,7 @@ public class EnemyController : MonoBehaviour
 
         if (unkillable)
         {
-            Debug.Log($"Enemy ignored {damage} damage because unkillable is enabled.");
+         //   Debug.Log($"Enemy ignored {damage} damage because unkillable is enabled.");
             // still provide feedback to player (stun) so hits feel meaningful
             Stun();
             return;
