@@ -184,3 +184,8 @@ MonoBehaviour:
   speed: 6
   hitRange: 0.3
   followHeartRate: 1
+  rotationSpeed: 1200
+  throwClip: {fileID: 8300000, guid: 1cd28a01053639844b0cefa1fa39259c, type: 3}
+  spinClip: {fileID: 8300000, guid: 0ab1eef2340366d408158c928ce7b21f, type: 3}
+  hitClip: {fileID: 8300000, guid: cf83c3bdc40abcc47ba073b20610f027, type: 3}
+  audioVolume: 1

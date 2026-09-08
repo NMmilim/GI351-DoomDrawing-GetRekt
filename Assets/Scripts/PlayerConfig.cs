@@ -20,9 +20,6 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Seconds after pressing parry input within which an incoming attack can be parried")]
     [SerializeField] private float parryInputWindow = 0.25f;
 
-    [Header("Input & Dodge")]
-    [SerializeField] private float dodgeDuration = 0.35f;
-            
     [Header("Block / Parry Cooldown")]
     [Tooltip("Minimum seconds between allowed block/parry inputs to prevent spamming")]
     public float blockCooldown = 0.25f;
@@ -57,9 +54,6 @@ public class PlayerController : MonoBehaviour
 
     // runtime input state
     private float lastParryTime = -10f;
-    private int lastParryDir = 0; // -1 left, +1 right
-    private bool isDodging = false;
-    private float dodgeEndTime = 0f;
 
     [Header("Animation")]
     [SerializeField] private Animator animator;
@@ -82,6 +76,11 @@ public class PlayerController : MonoBehaviour
     // Adrenaline coroutine handle
     private Coroutine adrenalineCoroutine;
 
+    // cached animator parameter availability (avoid "Parameter 'X' does not exist." warnings)
+    private bool hasParryParameter = false;
+    private bool hasHitParameter = false;
+    private bool hasDeathParameter = false;
+
     private void Start()
     {
         currentHealth = maxHealth;
@@ -89,6 +88,20 @@ public class PlayerController : MonoBehaviour
         if (animator == null)
         {
             animator = GetComponent<Animator>();
+        }
+
+        // Cache animator parameter existence to avoid warnings when parameters are missing
+        if (animator != null)
+        {
+            var pars = animator.parameters;
+            for (int i = 0; i < pars.Length; ++i)
+            {
+                var p = pars[i];
+                if (p.name == "Parry") hasParryParameter = true;
+                if (p.name == "Hit") hasHitParameter = true;
+                if (p.name == "Death") hasDeathParameter = true;
+                if (hasParryParameter && hasHitParameter && hasDeathParameter) break;
+            }
         }
 
         // Update UI with initial health
@@ -108,8 +121,7 @@ public class PlayerController : MonoBehaviour
             // enforce block/parry cooldown
             if (Time.time - lastBlockTime < blockCooldown)
             {
-                // still provide optional feedback: do not trigger parry
-                Debug.Log("[PlayerController] Block/parry ignored - on cooldown.");
+                // optional: feedback suppressed to reduce console spam
             }
             else
             {
@@ -120,7 +132,7 @@ public class PlayerController : MonoBehaviour
                 // reset failed flag until we know outcome
                 lastParryFailed = false;
 
-                if (animator != null)
+                if (animator != null && hasParryParameter)
                 {
                     animator.SetTrigger("Parry");
                 }
@@ -133,27 +145,6 @@ public class PlayerController : MonoBehaviour
                 Invoke(nameof(SetAnimationIdle), parryInputWindow);
             }
         }
-
-        // --- DODGE SYSTEM (planned, commented out) ---
-        /*
-        if (Keyboard.current.spaceKey.wasPressedThisFrame && SomeConditionForDodge())
-        {
-            isDodging = true;
-            dodgeEndTime = Time.time + dodgeDuration;
-            currentState = PlayerState.Parry; // placeholder, later replace with Dodge state
-
-            if (animator != null)
-            {
-                animator.SetTrigger("Dodge");
-            }
-        }
-
-        if (isDodging && Time.time >= dodgeEndTime)
-        {
-            isDodging = false;
-            SetAnimationIdle();
-        }
-        */
     }
 
     // ENEMY ATTACK
@@ -213,7 +204,7 @@ public class PlayerController : MonoBehaviour
     {
         currentState = PlayerState.Hit;
 
-        if (animator != null)
+        if (animator != null && hasHitParameter)
         {
             animator.SetTrigger("Hit");
         }
@@ -227,7 +218,7 @@ public class PlayerController : MonoBehaviour
         currentHealth = 0;
         currentState = PlayerState.Dead;
 
-        if (animator != null)
+        if (animator != null && hasDeathParameter)
             animator.SetTrigger("Death");
 
         enabled = false;
@@ -267,7 +258,7 @@ public class PlayerController : MonoBehaviour
         if (Time.time - lastParryTime <= parryInputWindow)
         {
             currentState = PlayerState.Parry;
-            if (animator != null)
+            if (animator != null && hasParryParameter)
             {
                 animator.SetTrigger("Parry");
             }

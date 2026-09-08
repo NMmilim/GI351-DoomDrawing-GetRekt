@@ -116,7 +116,6 @@ public class UIManager : MonoBehaviour
         if (scoreText != null) scoreText.color = defaultTextColor;
         if (comboText != null) comboText.color = defaultTextColor;
         if (timerText != null) timerText.color = defaultTextColor;
-        if (gameOverText != null) gameOverText.color = defaultTextColor;
 
         if (gameOverText != null)
             gameOverText.gameObject.SetActive(false);

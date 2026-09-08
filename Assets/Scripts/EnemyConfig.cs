@@ -47,6 +47,13 @@ public class EnemyController : MonoBehaviour
 
     private Transform player;
 
+    // cached animator parameter availability (avoid "Parameter 'X' does not exist." warnings)
+    private bool hasPrepareParameter = false;
+    private bool hasAttackParameter = false;
+
+    // avoid repeated warning spam
+    private bool warnedMissingPrefab = false;
+
     private void Start()
     {
         currentHealth = maxHealth;
@@ -64,10 +71,37 @@ public class EnemyController : MonoBehaviour
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
 
-        // diagnose missing prefab early
+        // Cache animator parameter existence to avoid noisy warnings when parameters are missing
+        if (animator != null)
+        {
+            var pars = animator.parameters;
+            for (int i = 0; i < pars.Length; ++i)
+            {
+                var p = pars[i];
+                if (p.name == "Prepare") hasPrepareParameter = true;
+                if (p.name == "Attack") hasAttackParameter = true;
+                if (hasPrepareParameter && hasAttackParameter) break;
+            }
+        }
+
+        // diagnose missing prefab early; try a safe fallback via Resources (if you have a "Shuriken" prefab in Resources)
         if (shurikenPrefab == null)
         {
-            Debug.LogWarning($"[EnemyController:{name}] shurikenPrefab is not assigned in inspector.");
+            GameObject found = Resources.Load<GameObject>("Shuriken");
+            if (found != null)
+            {
+                shurikenPrefab = found;
+                Debug.Log($"[EnemyController:{name}] shurikenPrefab auto-assigned from Resources/Shuriken");
+            }
+            else
+            {
+                // Only warn once per instance to prevent console spam.
+                if (!warnedMissingPrefab)
+                {
+                    Debug.LogWarning($"[EnemyController:{name}] shurikenPrefab is not assigned in inspector. Assign a prefab or place one at Assets/Resources/Shuriken.prefab to auto-assign.");
+                    warnedMissingPrefab = true;
+                }
+            }
         }
 
         // subscribe to BeatHit if present, fallback to FindObjectOfType if instance not set yet
@@ -90,6 +124,29 @@ public class EnemyController : MonoBehaviour
             {
                 Debug.Log($"[EnemyController:{name}] No BeatHit found; using local timing for attacks.");
             }
+        }
+    }
+
+    // Editor-friendly quick action: attempt to assign prefab from Resources at runtime/editor.
+    [ContextMenu("Assign Shuriken From Resources")]
+    private void ContextAssignShurikenFromResources()
+    {
+        if (shurikenPrefab != null)
+        {
+            Debug.Log($"[EnemyController:{name}] shurikenPrefab already assigned.");
+            return;
+        }
+
+        var found = Resources.Load<GameObject>("Shuriken");
+        if (found != null)
+        {
+            shurikenPrefab = found;
+            warnedMissingPrefab = false;
+            Debug.Log($"[EnemyController:{name}] Assigned shurikenPrefab from Resources/Shuriken via ContextMenu.");
+        }
+        else
+        {
+            Debug.LogWarning($"[EnemyController:{name}] No Resources/Shuriken found to assign.");
         }
     }
 
@@ -180,7 +237,7 @@ public class EnemyController : MonoBehaviour
         prepareTimer = prepareTime;
         prepared = false;
 
-        if (animator != null)
+        if (animator != null && hasPrepareParameter)
             animator.SetTrigger("Prepare");
 
         Debug.Log($"[EnemyController:{name}] ENEMY PREPARE ATTACK");
@@ -221,10 +278,10 @@ public class EnemyController : MonoBehaviour
             playerController.SetAttackingEnemy(this);
         }
 
-        if (animator != null)
+        if (animator != null && hasAttackParameter)
             animator.SetTrigger("Attack");
 
-        // spawn shuriken projectile toward player
+        // spawn shuriken projectile toward player          
         SpawnShuriken();
 
         Invoke(nameof(FinishAttack), attackDuration);
@@ -234,7 +291,7 @@ public class EnemyController : MonoBehaviour
     {
         isAttacking = false;
         currentState = EnemyState.Approach;
-        if (animator != null)
+        if (animator != null && hasAttackParameter)
             animator.ResetTrigger("Attack");
     }
 
@@ -300,7 +357,10 @@ public class EnemyController : MonoBehaviour
 
         if (shurikenPrefab == null)
         {
-            Debug.LogWarning($"[EnemyController:{name}] SpawnShuriken aborted: shurikenPrefab == null");
+            Debug.LogError(
+                $"[EnemyController:{name}] Cannot spawn shuriken! " +
+                $"Assign Shuriken Prefab in the EnemyController Inspector."
+            );
             return;
         }
 
