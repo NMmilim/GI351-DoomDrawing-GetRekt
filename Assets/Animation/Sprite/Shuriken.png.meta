@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 54e5abb8b7ab19b41924f69bef0da45f
+guid: acc14b22e0cb1954f9459de4e4c3df64
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3149911467803588366
-    second: EnemyNinja_1_0
+      213: -6454969007074664543
+    second: Shuriken_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: EnemyNinja_1_0
+      name: Shuriken_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 18
-        height: 21
+        x: 5
+        y: 5
+        width: 21
+        height: 22
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e07bc508acbb6bb20800000000000000
-      internalID: 3149911467803588366
+      spriteID: 1af982153e75b66a0800000000000000
+      internalID: -6454969007074664543
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      EnemyNinja_1_0: 3149911467803588366
+      Shuriken_0: -6454969007074664543
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
