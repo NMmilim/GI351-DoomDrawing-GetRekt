@@ -1215,7 +1215,7 @@ MonoBehaviour:
   parryFillImage: {fileID: 0}
   parryActiveCue: {fileID: 0}
   startOnPlay: 1
-  useUnscaledTime: 0
+  useUnscaledTime: 1
   baseKillScore: 1
   scoreMultiplier: 5
   multiplierText: {fileID: 0}
