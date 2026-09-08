@@ -141,7 +141,18 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log($"TakeDamage called. dmg={damage} currentHealth(before)={currentHealth}");
 
+        // If this hit will kill the player, preserve the current score before applying damage
+        if (damage >= currentHealth)
+        {
+            UIManager.Instance?.PreserveFinalScore();
+            UIManager.Instance?.EnablePreserveMode();
+        }
+
         currentHealth -= damage;
+
+        // store recent hit data for potential recovery-on-parry
+        lastHitTime = Time.time;
+        lastHitDamage = damage;
 
         // Update UI health immediately
         UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
@@ -156,16 +167,14 @@ public class PlayerController : MonoBehaviour
         else
         {
             PlayerHit();
-        }
 
-        // When player reaches last life, enable preserve mode and snapshot score
-        if (currentHealth == 1)
-        {
-            UIManager.Instance?.EnablePreserveMode();
-            UIManager.Instance?.PreserveFinalScore();
+            // When player reaches last life, enable preserve mode (snapshot already handled on lethal-check above)
+            if (currentHealth == 1)
+            {
+                UIManager.Instance?.EnablePreserveMode();
+            }
         }
     }
-
 
     private void PlayerHit()
     {
@@ -178,7 +187,6 @@ public class PlayerController : MonoBehaviour
 
         Invoke(nameof(SetAnimationIdle), 0.3f);
     }
-
 
     // DEATH
     private void Die()
@@ -203,7 +211,6 @@ public class PlayerController : MonoBehaviour
         UIManager.Instance?.ShowLose();
     }
 
-
     // IDLE
     private void SetAnimationIdle()
     {
@@ -222,9 +229,6 @@ public class PlayerController : MonoBehaviour
     public bool OnIncomingAttack(int damage, EnemyController attacker, out bool wasParried)
     {
         wasParried = false;
-        
-        
-
 
         // --- SUCCESSFUL PARRY ---
         if (Time.time - lastParryTime <= parryInputWindow)
@@ -242,14 +246,9 @@ public class PlayerController : MonoBehaviour
             }
 
             wasParried = true;
-            
-
 
             // Heart-rate: successful perfect parry
             HeartRate.Instance?.RegisterPerfectParry();
-
-            // UI: award parry points / temporary multiplier
-           
 
             // NEW: increment combo on successful parry
             UIManager.Instance?.AddCombo();
@@ -306,7 +305,6 @@ public class PlayerController : MonoBehaviour
 
         return false; // not handled, caller should apply damage
     }
-
 
     // Adrenaline surge: after a recovery parry we optionally add BPM over time to simulate adrenaline.
     private IEnumerator AdrenalineSurgeRoutine()

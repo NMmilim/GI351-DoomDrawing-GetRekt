@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 
 public class UIManager : MonoBehaviour
 {
@@ -21,6 +22,9 @@ public class UIManager : MonoBehaviour
     public bool startOnPlay = true;
     public bool useUnscaledTime = true;
 
+    [Header("Heart Rate UI")]
+    public Text heartRateText; // new: assign in inspector (optional)
+
     private float elapsed = 0f;
     private bool running = false;
 
@@ -30,6 +34,12 @@ public class UIManager : MonoBehaviour
     public int maxComboMultiplier = 8;
     [Tooltip("Base points per perfect press")]
     public int basePressPoints = 100;
+
+    // HeartRate reference (optional)
+    private HeartRate heartRateRef;
+
+    // Allow restart only after game over
+    private bool isGameOver = false;
 
     void Awake()
     {
@@ -41,6 +51,17 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
+        // hook heart rate UI if present
+        heartRateRef = HeartRate.Instance;
+        if (heartRateRef == null)
+            heartRateRef = FindObjectOfType<HeartRate>();
+        if (heartRateRef != null)
+        {
+            heartRateRef.OnHeartRateChanged += UpdateHeartRateText;
+            // initialize display
+            UpdateHeartRateText(heartRateRef.GetCurrentRate());
+        }
+
         UpdateUI();
 
         if (gameOverText != null)
@@ -50,13 +71,34 @@ public class UIManager : MonoBehaviour
             StartTimer();
     }
 
+    void OnDestroy()
+    {
+        if (heartRateRef != null)
+            heartRateRef.OnHeartRateChanged -= UpdateHeartRateText;
+    }
+
     void Update()
     {
-        if (!running) return;
+        // Allow restart input to be processed when game is over even if the timer is stopped.
+        if (!running && !isGameOver) return;
 
         float delta = useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
-        elapsed += delta;
+        if (running) elapsed += delta;
         UpdateTimerText();
+
+        // Process restart when game is over
+        if (isGameOver)
+        {
+            if (Keyboard.current != null)
+            {
+                if (Keyboard.current.spaceKey.wasPressedThisFrame)
+                    RestartGame();
+            }
+            else if (Input.GetKeyDown(KeyCode.Space))
+            {
+                RestartGame();
+            }
+        }
     }
 
     // --- Timer ---
@@ -135,6 +177,7 @@ public class UIManager : MonoBehaviour
         Debug.Log("[UIManager] Preserve mode enabled (last life)");
     }
 
+    // snapshot current score for display after death (call BEFORE lethal hit is applied)
     public void PreserveFinalScore()
     {
         finalScore = score;
@@ -149,7 +192,37 @@ public class UIManager : MonoBehaviour
             gameOverText.gameObject.SetActive(true);
         }
 
+        // enable game-over state so Update will handle restart input
+        isGameOver = true;
+
         StopTimer();
+    }
+
+    // Restart helper: reloads active scene
+    public void RestartGame()
+    {
+        // guard
+        if (!isGameOver) return;
+
+        // reset flag to avoid duplicate calls
+        isGameOver = false;
+
+        // ensure timeScale is normal
+        Time.timeScale = 1f;
+
+        // Unfreeze heart rate if necessary
+        if (HeartRate.Instance != null)
+            HeartRate.Instance.UnfreezeAndResetToBaseline();
+
+        // reload scene
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    // --- Heart Rate UI ---
+    private void UpdateHeartRateText(float rate)
+    {
+        if (heartRateText == null) return;
+        heartRateText.text = $"HR: {Mathf.RoundToInt(rate)} BPM";
     }
 
     // --- Health ---
@@ -164,5 +237,7 @@ public class UIManager : MonoBehaviour
         UpdateTimerText();
         UpdateScoreText();
         UpdateComboText();
+        if (heartRateRef != null)
+            UpdateHeartRateText(heartRateRef.GetCurrentRate());
     }
 }

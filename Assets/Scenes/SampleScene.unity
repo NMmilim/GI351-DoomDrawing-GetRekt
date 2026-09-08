@@ -1294,18 +1294,10 @@ MonoBehaviour:
   scoreText: {fileID: 1246356523}
   gameOverText: {fileID: 1243390386}
   healthText: {fileID: 77878537}
-  parryFillImage: {fileID: 0}
-  parryActiveCue: {fileID: 0}
+  comboText: {fileID: 425332303}
   startOnPlay: 1
   useUnscaledTime: 1
-  baseKillScore: 1
-  scoreMultiplier: 5
-  multiplierText: {fileID: 0}
-  parryScoreBonus: 1
-  parryScoreMultiplierOnSuccess: 2
-  parryMultiplierDuration: 3
   heartRateText: {fileID: 125605341}
-  comboText: {fileID: 425332303}
   maxComboMultiplier: 50
   basePressPoints: 2
 --- !u!224 &1163982454
