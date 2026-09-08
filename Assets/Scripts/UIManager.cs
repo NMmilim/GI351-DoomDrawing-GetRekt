@@ -441,4 +441,28 @@ public class UIManager : MonoBehaviour
         if (heartRateText == null) return;
         heartRateText.text = $"HR: {Mathf.RoundToInt(rate)} BPM";
     }
+    [Header("Combo UI")]
+    public Text comboText;   // assign in inspector (optional)
+    private int comboCount = 0;
+
+    public void AddCombo()
+    {
+        comboCount++;
+        Debug.Log($"[UIManager] AddCombo() -> comboCount={comboCount}");
+        UpdateComboText();
+    }
+
+    public void ResetCombo()
+    {
+        comboCount = 0;
+        Debug.Log("[UIManager] ResetCombo() -> comboCount=0");
+        UpdateComboText();
+    }
+
+    private void UpdateComboText()
+    {
+        if (comboText != null)
+            comboText.text = "Combo: " + comboCount.ToString();
+    }
+
 }
