@@ -56,22 +56,58 @@ public class EnemyController : MonoBehaviour
         {
             player = playerObject.transform;
         }
+        else
+        {
+            Debug.LogWarning($"[EnemyController:{name}] Player with tag 'Player' not found at Start.");
+        }
 
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
 
-        // subscribe to BeatHit if present
+        // diagnose missing prefab early
+        if (shurikenPrefab == null)
+        {
+            Debug.LogWarning($"[EnemyController:{name}] shurikenPrefab is not assigned in inspector.");
+        }
+
+        // subscribe to BeatHit if present, fallback to FindObjectOfType if instance not set yet
         if (BeatHit.Instance != null)
         {
             BeatHit.Instance.OnBeat += OnBeat;
             beatSubscribed = true;
+            Debug.Log($"[EnemyController:{name}] Subscribed to BeatHit.Instance.OnBeat");
+        }
+        else
+        {
+            var found = FindObjectOfType<BeatHit>();
+            if (found != null)
+            {
+                found.OnBeat += OnBeat;
+                beatSubscribed = true;
+                Debug.Log($"[EnemyController:{name}] Subscribed to BeatHit (found via FindObjectOfType)");
+            }
+            else
+            {
+                Debug.Log($"[EnemyController:{name}] No BeatHit found; using local timing for attacks.");
+            }
         }
     }
 
     private void OnDestroy()
     {
-        if (beatSubscribed && BeatHit.Instance != null)
-            BeatHit.Instance.OnBeat -= OnBeat;
+        if (beatSubscribed)
+        {
+            if (BeatHit.Instance != null)
+            {
+                BeatHit.Instance.OnBeat -= OnBeat;
+            }
+            else
+            {
+                var found = FindObjectOfType<BeatHit>();
+                if (found != null)
+                    found.OnBeat -= OnBeat;
+            }
+        }
     }
 
     private void OnBeat(double dspTime, int beatIndex)
@@ -85,7 +121,21 @@ public class EnemyController : MonoBehaviour
 
     private void Update()
     {
-        if (player == null) return;
+        if (player == null)
+        {
+            // try to reacquire player in case it was respawned
+            var playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                player = playerObj.transform;
+                Debug.Log($"[EnemyController:{name}] Re-acquired player reference.");
+            }
+            else
+            {
+                // nothing to do until we have a player
+                return;
+            }
+        }
 
         switch (currentState)
         {
@@ -133,7 +183,7 @@ public class EnemyController : MonoBehaviour
         if (animator != null)
             animator.SetTrigger("Prepare");
 
-        Debug.Log("ENEMY PREPARE ATTACK");
+        Debug.Log($"[EnemyController:{name}] ENEMY PREPARE ATTACK");
     }
 
     private void PrepareAttack()
@@ -154,6 +204,8 @@ public class EnemyController : MonoBehaviour
     {
         if (isAttacking) return;
         isAttacking = true;
+
+        Debug.Log($"[EnemyController:{name}] AttackPlayer called");
 
         PlayerController playerController = player.GetComponent<PlayerController>();
         if (playerController != null)
@@ -191,7 +243,7 @@ public class EnemyController : MonoBehaviour
         }
 
         currentHealth -= damage;
-        Debug.Log("Enemy HP: " + currentHealth);
+        Debug.Log($"[EnemyController:{name}] Enemy HP: {currentHealth}");
 
         if (currentHealth <= 0)
         {
@@ -208,7 +260,7 @@ public class EnemyController : MonoBehaviour
         if (currentState == EnemyState.Dead) return;
 
         currentState = EnemyState.Stunned;
-        Debug.Log("ENEMY PARRIED!");
+        Debug.Log($"[EnemyController:{name}] ENEMY PARRIED!");
     }
 
     public void Die()
@@ -220,7 +272,7 @@ public class EnemyController : MonoBehaviour
         }
 
         currentState = EnemyState.Dead;
-        Debug.Log("ENEMY DEAD");
+        Debug.Log($"[EnemyController:{name}] ENEMY DEAD");
         Destroy(gameObject);
     }
 
@@ -231,25 +283,46 @@ public class EnemyController : MonoBehaviour
 
     private void SpawnShuriken()
     {
-        if (shurikenPrefab == null || player == null) return;
+        if (shurikenPrefab == null)
+        {
+            Debug.LogWarning($"[EnemyController:{name}] SpawnShuriken aborted: shurikenPrefab == null");
+            return;
+        }
+
+        if (player == null)
+        {
+            Debug.LogWarning($"[EnemyController:{name}] SpawnShuriken aborted: player == null");
+            return;
+        }
 
         // Aim at player’s current position
         Vector2 dir = ((Vector2)player.position - (Vector2)transform.position).normalized;
         Vector3 spawnPos = transform.position + (Vector3)(dir * strikeOffset);
 
         var go = Instantiate(shurikenPrefab, spawnPos, Quaternion.identity);
-        var s = go.GetComponent<Shuriken>();
-        if (s != null)
+        if (go == null)
         {
-            s.owner = this.gameObject;
-            s.damage = shurikenDamage;
-
-            // Provide the base speed; Shuriken will apply HeartRate multiplier itself (controlled by followHeartRate)
-            s.speed = shurikenSpeed;
-            s.followHeartRate = true;
-
-            s.Launch(dir);
+            Debug.LogError($"[EnemyController:{name}] Instantiate returned null for shurikenPrefab.");
+            return;
         }
+
+        var s = go.GetComponent<Shuriken>();
+        if (s == null)
+        {
+            Debug.LogWarning($"[EnemyController:{name}] Instantiated object has no Shuriken component.");
+            return;
+        }
+
+        s.owner = this.gameObject;
+        s.damage = shurikenDamage;
+
+        // Provide the base speed; Shuriken will apply HeartRate multiplier itself (controlled by followHeartRate)
+        s.speed = shurikenSpeed;
+        s.followHeartRate = true;
+
+        s.Launch(dir);
+
+        Debug.Log($"[EnemyController:{name}] Spawned shuriken towards player at {spawnPos} with base speed {shurikenSpeed}");
     }
 
     // ------------ Runtime control for unkillable ------------
