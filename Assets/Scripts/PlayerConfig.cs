@@ -241,6 +241,9 @@ public class PlayerController : MonoBehaviour
             // Heart-rate: successful perfect parry (adrenaline)
             HeartRate.Instance?.RegisterPerfectParry();
 
+            // UI: award parry points / temporary multiplier
+            UIManager.Instance?.OnPerfectParry();
+
             // If a prior parry attempt had failed, reduce HR a bit on this recovery parry
             if (lastParryFailed)
             {

@@ -34,6 +34,14 @@ public class UIManager : MonoBehaviour
     [Tooltip("Optional Text to display the current multiplier (assign in inspector)")]
     public Text multiplierText;
 
+    [Header("Parry Score / Multiplier")]
+    [Tooltip("Points awarded immediately for a perfect parry")]
+    public int parryScoreBonus = 2;
+    [Tooltip("Temporary multiplier applied to score after a perfect parry (1 = no change)")]
+    public int parryScoreMultiplierOnSuccess = 2;
+    [Tooltip("Duration (seconds) the parry multiplier remains active")]
+    public float parryMultiplierDuration = 3f;
+
     [Header("Heart Rate UI")]
     [Tooltip("Optional Text to display current heart-rate (BPM)")]
     public Text heartRateText; // assign in inspector (optional)
@@ -47,6 +55,10 @@ public class UIManager : MonoBehaviour
 
     // Keep a reference to the HeartRate instance we subscribed to so we can unsubscribe reliably.
     private HeartRate heartRateRef;
+
+    // Parry multiplier state
+    private int savedMultiplier = 1;
+    private Coroutine parryMultiplierCoroutine;
 
     void Awake()
     {
@@ -170,6 +182,52 @@ public class UIManager : MonoBehaviour
         UpdateScoreText();
     }
 
+    // Award immediate parry bonus and optionally enable a temporary multiplier
+    public void OnPerfectParry()
+    {
+        // award immediate bonus (multiplied by current multiplier)
+        AddScore(parryScoreBonus, true);
+
+        // apply temporary multiplier if configured (>1)
+        if (parryScoreMultiplierOnSuccess > 1 && parryMultiplierDuration > 0f)
+        {
+            TriggerParryMultiplier(parryScoreMultiplierOnSuccess, parryMultiplierDuration);
+        }
+    }
+
+    // Start temporary parry multiplier (saves and restores previous multiplier)
+    public void TriggerParryMultiplier(int multiplier, float duration)
+    {
+        if (multiplier <= 1 || duration <= 0f) return;
+
+        // stop existing coroutine and restore before applying new one
+        if (parryMultiplierCoroutine != null)
+        {
+            StopCoroutine(parryMultiplierCoroutine);
+            // restore saved multiplier (in case it was overridden)
+            SetScoreMultiplier(savedMultiplier);
+            parryMultiplierCoroutine = null;
+        }
+
+        savedMultiplier = Mathf.Max(1, scoreMultiplier);
+        SetScoreMultiplier(multiplier);
+        parryMultiplierCoroutine = StartCoroutine(ParryMultiplierRoutine(duration));
+    }
+
+    private System.Collections.IEnumerator ParryMultiplierRoutine(float duration)
+    {
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            yield return null;
+        }
+
+        // restore previous multiplier
+        SetScoreMultiplier(Mathf.Max(1, savedMultiplier));
+        parryMultiplierCoroutine = null;
+    }
+
     // Convenience for awarding a typical kill using the configured baseKillScore
     public void AddKillScore(bool useMultiplier = true)
     {
@@ -207,7 +265,6 @@ public class UIManager : MonoBehaviour
             if (multiplierText != null)
             {
                 scoreText.text = "Score: " + score.ToString();
-              //  multiplierText.text = "x" + Mathf.Max(1, scoreMultiplier).ToString();
             }
             else
             {
@@ -215,7 +272,6 @@ public class UIManager : MonoBehaviour
                 scoreText.text = "Score: " + score.ToString();
                 if (scoreMultiplier > 1)
                 {
-                   // scoreText.text += " (x" + scoreMultiplier.ToString() + ")";
                 }
             }
             return;

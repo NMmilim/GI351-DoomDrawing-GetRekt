@@ -1215,10 +1215,13 @@ MonoBehaviour:
   parryFillImage: {fileID: 317558202}
   parryActiveCue: {fileID: 317558200}
   startOnPlay: 1
-  useUnscaledTime: 1
-  baseKillScore: 0
+  useUnscaledTime: 0
+  baseKillScore: 1
   scoreMultiplier: 5
   multiplierText: {fileID: 0}
+  parryScoreBonus: 2
+  parryScoreMultiplierOnSuccess: 3
+  parryMultiplierDuration: 3
   heartRateText: {fileID: 125605341}
 --- !u!224 &1163982454
 RectTransform:
