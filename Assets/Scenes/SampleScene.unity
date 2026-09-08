@@ -1212,8 +1212,8 @@ MonoBehaviour:
   scoreText: {fileID: 1246356523}
   gameOverText: {fileID: 1243390386}
   healthText: {fileID: 77878537}
-  parryFillImage: {fileID: 317558202}
-  parryActiveCue: {fileID: 317558200}
+  parryFillImage: {fileID: 0}
+  parryActiveCue: {fileID: 0}
   startOnPlay: 1
   useUnscaledTime: 0
   baseKillScore: 1
