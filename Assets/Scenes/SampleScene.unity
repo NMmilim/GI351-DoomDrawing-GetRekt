@@ -1855,6 +1855,10 @@ PrefabInstance:
       propertyPath: owner
       value: 
       objectReference: {fileID: 833528745}
+    - target: {fileID: 247788965681961066, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
+      propertyPath: rotationSpeed
+      value: 1200
+      objectReference: {fileID: 0}
     - target: {fileID: 309751621344335115, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
       propertyPath: m_Name
       value: shurikenTest

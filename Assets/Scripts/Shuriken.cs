@@ -12,13 +12,17 @@ public class Shuriken : MonoBehaviour
     // If you prefer controlling speed centrally in EnemyController, set this false and adjust there instead.
     public bool followHeartRate = true;
 
+    // Rotation animation: degrees per second
+    [Tooltip("Rotation speed in degrees per second (positive = clockwise)")]
+    public float rotationSpeed = 720f;
+
     private Rigidbody2D rb;
     private Transform player;
     private bool used = false; // prevent double-hit processing
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();               
         rb.gravityScale = 0f;
         rb.isKinematic = false;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
@@ -43,6 +47,10 @@ public class Shuriken : MonoBehaviour
         // use Rigidbody2D.velocity (correct API) to set linear velocity
         if (rb != null)
             rb.linearVelocity = dir.normalized * finalSpeed;
+
+        // optional: align initial rotation to travel direction
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(0f, 0f, angle);
     }
 
     // Stop movement and disable further processing. Called on game over.
@@ -60,6 +68,12 @@ public class Shuriken : MonoBehaviour
 
     private void Update()
     {
+        // simple visual rotation every frame
+        if (Mathf.Abs(rotationSpeed) > 0f)
+        {
+            transform.Rotate(0f, 0f, rotationSpeed * Time.deltaTime);
+        }
+
         if (used) return;
         if (player == null) return;
 
