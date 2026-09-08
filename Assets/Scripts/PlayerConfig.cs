@@ -139,13 +139,9 @@ public class PlayerController : MonoBehaviour
         if (currentState == PlayerState.Dead)
             return;
 
-        Debug.Log($"TakeDamage called. dmg={damage} currentHealth(before)={currentHealth}\n{System.Environment.StackTrace}");
+        Debug.Log($"TakeDamage called. dmg={damage} currentHealth(before)={currentHealth}");
 
         currentHealth -= damage;
-
-        // store recent hit data for potential recovery-on-parry
-        lastHitTime = Time.time;
-        lastHitDamage = damage;
 
         // Update UI health immediately
         UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
@@ -161,13 +157,15 @@ public class PlayerController : MonoBehaviour
         {
             PlayerHit();
         }
+
+        // When player reaches last life, enable preserve mode and snapshot score
         if (currentHealth == 1)
         {
-            // Preserve score when player is at critical health
+            UIManager.Instance?.EnablePreserveMode();
             UIManager.Instance?.PreserveFinalScore();
         }
-
     }
+
 
     private void PlayerHit()
     {
@@ -188,19 +186,14 @@ public class PlayerController : MonoBehaviour
         currentHealth = 0;
         currentState = PlayerState.Dead;
 
-
         if (animator != null)
-        {
             animator.SetTrigger("Death");
-        }
 
         enabled = false;
 
         Collider2D playerCollider = GetComponent<Collider2D>();
         if (playerCollider != null)
-        {
             playerCollider.enabled = false;
-        }
 
         // Heart-rate: set BPM to zero and freeze updates
         HeartRate.Instance?.OnPlayerDeath();
@@ -209,6 +202,7 @@ public class PlayerController : MonoBehaviour
         UIManager.Instance?.UpdateHealth(currentHealth, maxHealth);
         UIManager.Instance?.ShowLose();
     }
+
 
     // IDLE
     private void SetAnimationIdle()
@@ -255,7 +249,7 @@ public class PlayerController : MonoBehaviour
             HeartRate.Instance?.RegisterPerfectParry();
 
             // UI: award parry points / temporary multiplier
-            UIManager.Instance?.OnPerfectParry();
+           
 
             // NEW: increment combo on successful parry
             UIManager.Instance?.AddCombo();
