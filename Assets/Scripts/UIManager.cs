@@ -25,6 +25,13 @@ public class UIManager : MonoBehaviour
     [Header("Heart Rate UI")]
     public Text heartRateText; // new: assign in inspector (optional)
 
+    [Header("Audio")]
+    [Tooltip("Optional sound to play when game over")]
+    public AudioClip gameOverClip;
+    [Tooltip("Volume for one-shot SFX (0..1)")]
+    [Range(0f, 1f)]
+    public float sfxVolume = 0.9f;
+
     private float elapsed = 0f;
     private bool running = false;
 
@@ -40,6 +47,9 @@ public class UIManager : MonoBehaviour
 
     // Allow restart only after game over
     private bool isGameOver = false;
+
+    // expose read-only for other systems (EnemyController) to check game-over state
+    public bool IsGameOver => isGameOver;
 
     void Awake()
     {
@@ -190,6 +200,27 @@ public class UIManager : MonoBehaviour
         {
             gameOverText.text = "YOU LOSE\nFinal Score: " + finalScore.ToString();
             gameOverText.gameObject.SetActive(true);
+        }
+
+        // Stop background music (if BeatHit present)
+        if (BeatHit.Instance != null && BeatHit.Instance.musicSource != null)
+        {
+            try
+            {
+                BeatHit.Instance.musicSource.Stop();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"UIManager: failed to stop BGM: {ex.Message}");
+            }
+        }
+
+        // Play game over one-shot SFX at camera position (if assigned)
+        if (gameOverClip != null)
+        {
+            Vector3 pos = Vector3.zero;
+            if (Camera.main != null) pos = Camera.main.transform.position;
+            AudioSource.PlayClipAtPoint(gameOverClip, pos, sfxVolume);
         }
 
         // enable game-over state so Update will handle restart input

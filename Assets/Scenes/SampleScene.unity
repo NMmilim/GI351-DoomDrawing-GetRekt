@@ -998,6 +998,7 @@ MonoBehaviour:
   startDelay: 0.5
   playOnStart: 1
   debugBeats: 1
+  musicVolume: 0.15
 --- !u!4 &741205386
 Transform:
   m_ObjectHideFlags: 0
@@ -1210,6 +1211,8 @@ MonoBehaviour:
   startOnPlay: 1
   useUnscaledTime: 1
   heartRateText: {fileID: 125605341}
+  gameOverClip: {fileID: 8300000, guid: d72c88993ae4e924dbb656faba87df86, type: 3}
+  sfxVolume: 0.9
   maxComboMultiplier: 50
   basePressPoints: 2
 --- !u!224 &1163982454
@@ -1815,8 +1818,24 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2552868695816496732, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
+      propertyPath: hurtClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 43f9281c79b117c49ab46dc7724641cf, type: 3}
+    - target: {fileID: 2552868695816496732, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
+      propertyPath: blockClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 45d7124d175dfd64092d6bfcf11f7be8, type: 3}
+    - target: {fileID: 2552868695816496732, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
       propertyPath: maxHealth
       value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2552868695816496732, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
+      propertyPath: parryClip
+      value: 
+      objectReference: {fileID: 8300000, guid: c34f5e0bd98952e45819817320e96c57, type: 3}
+    - target: {fileID: 2552868695816496732, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
+      propertyPath: audioVolume
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2552868695816496732, guid: 89abb539ce7fb5b41a181ab5add49326, type: 3}
       propertyPath: hitRecoveryWindow
@@ -1855,6 +1874,22 @@ PrefabInstance:
       propertyPath: owner
       value: 
       objectReference: {fileID: 833528745}
+    - target: {fileID: 247788965681961066, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
+      propertyPath: hitClip
+      value: 
+      objectReference: {fileID: 8300000, guid: cf83c3bdc40abcc47ba073b20610f027, type: 3}
+    - target: {fileID: 247788965681961066, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
+      propertyPath: spinClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 0ab1eef2340366d408158c928ce7b21f, type: 3}
+    - target: {fileID: 247788965681961066, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
+      propertyPath: throwClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 1cd28a01053639844b0cefa1fa39259c, type: 3}
+    - target: {fileID: 247788965681961066, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
+      propertyPath: audioVolume
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 247788965681961066, guid: 1c3e3dd28f7d5884381110bb3cf8ea70, type: 3}
       propertyPath: rotationSpeed
       value: 1200

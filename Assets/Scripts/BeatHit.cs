@@ -18,6 +18,10 @@ public class BeatHit : MonoBehaviour
     public bool playOnStart = false; // auto play when the scene starts
     public bool debugBeats = false; // log beats to console for debugging
 
+    [Tooltip("Background music volume (0..1)")]
+    [Range(0f, 1f)]
+    public float musicVolume = 1f;
+
     // (dspTime, beatIndex)
     public event Action<double, int> OnBeat;
 
@@ -47,12 +51,25 @@ public class BeatHit : MonoBehaviour
             return;
         }
 
+        // apply volume (clamped) before scheduling playback
+        musicSource.volume = Mathf.Clamp01(musicVolume);
+
         secondsPerBeat = 60.0 / Math.Max(0.0001f, bpm);
         double dspStart = AudioSettings.dspTime + startDelay;
         musicSource.PlayScheduled(dspStart);
         nextBeatDsp = dspStart + secondsPerBeat;
         beatIndex = 0;
         isPlaying = true;
+    }
+
+    /// <summary>
+    /// Set music volume at runtime (0..1). Applies immediately if musicSource exists.
+    /// </summary>
+    public void SetMusicVolume(float volume)
+    {
+        musicVolume = Mathf.Clamp01(volume);
+        if (musicSource != null)
+            musicSource.volume = musicVolume;
     }
 
     void Start()

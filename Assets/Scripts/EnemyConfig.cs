@@ -203,6 +203,14 @@ public class EnemyController : MonoBehaviour
     private void AttackPlayer()
     {
         if (isAttacking) return;
+
+        // do not attack if game is over
+        if (UIManager.Instance != null && UIManager.Instance.IsGameOver)
+        {
+            Debug.Log($"[EnemyController:{name}] Attack skipped: game over.");
+            return;
+        }
+
         isAttacking = true;
 
         Debug.Log($"[EnemyController:{name}] AttackPlayer called");
@@ -283,6 +291,13 @@ public class EnemyController : MonoBehaviour
 
     private void SpawnShuriken()
     {
+        // do not spawn if game is over
+        if (UIManager.Instance != null && UIManager.Instance.IsGameOver)
+        {
+            Debug.Log($"[EnemyController:{name}] SpawnShuriken aborted: game over.");
+            return;
+        }
+
         if (shurikenPrefab == null)
         {
             Debug.LogWarning($"[EnemyController:{name}] SpawnShuriken aborted: shurikenPrefab == null");

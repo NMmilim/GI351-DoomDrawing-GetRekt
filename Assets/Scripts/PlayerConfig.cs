@@ -23,6 +23,16 @@ public class PlayerController : MonoBehaviour
     [Header("Input & Dodge")]
     [SerializeField] private float dodgeDuration = 0.35f;
 
+    [Header("Audio (optional)")]
+    [Tooltip("Played when player presses block key (space)")]
+    public AudioClip blockClip;
+    [Tooltip("Played on successful parry")]
+    public AudioClip parryClip;
+    [Tooltip("Played when player takes damage (non-lethal)")]
+    public AudioClip hurtClip;
+    [Range(0f,1f)]
+    public float audioVolume = 0.8f;
+
     [Header("HeartRate Recovery")]
     [Tooltip("Time window (seconds) after taking damage during which a subsequent perfect parry reduces BPM")]
     [SerializeField] private float hitRecoveryWindow = 3f;
@@ -101,6 +111,10 @@ public class PlayerController : MonoBehaviour
                 animator.SetTrigger("Parry");
             }
 
+            // play block sound on press
+            if (blockClip != null)
+                AudioSource.PlayClipAtPoint(blockClip, transform.position, audioVolume);
+
             // Reset back to idle after short delay
             Invoke(nameof(SetAnimationIdle), parryInputWindow);
         }
@@ -159,6 +173,10 @@ public class PlayerController : MonoBehaviour
 
         // Heart-rate: register hit taken
         HeartRate.Instance?.RegisterHitTaken(damage);
+
+        // play hurt sound (optional)
+        if (hurtClip != null)
+            AudioSource.PlayClipAtPoint(hurtClip, transform.position, audioVolume);
 
         if (currentHealth <= 0)
         {
@@ -252,6 +270,10 @@ public class PlayerController : MonoBehaviour
 
             // NEW: increment combo on successful parry
             UIManager.Instance?.AddCombo();
+
+            // play parry sound
+            if (parryClip != null)
+                AudioSource.PlayClipAtPoint(parryClip, transform.position, audioVolume);
 
             // Recovery logic if last parry failed
             if (lastParryFailed)
