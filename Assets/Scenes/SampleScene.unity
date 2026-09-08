@@ -379,6 +379,7 @@ RectTransform:
   - {fileID: 77878536}
   - {fileID: 125605340}
   - {fileID: 317558201}
+  - {fileID: 425332302}
   - {fileID: 1163982454}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -700,13 +701,13 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1163982454}
+  m_Father: {fileID: 287366555}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 902, y: 217}
-  m_SizeDelta: {x: 340.97, y: 105.62}
-  m_Pivot: {x: 1, y: 1}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 755.515, y: 217.91779}
+  m_SizeDelta: {x: 340.96997, y: 105.619995}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &425332303
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -740,7 +741,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Combo :'
+  m_Text: 'Combo : 0
+
+'
 --- !u!222 &425332304
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1298,13 +1301,13 @@ MonoBehaviour:
   baseKillScore: 1
   scoreMultiplier: 5
   multiplierText: {fileID: 0}
-  parryScoreBonus: 2
+  parryScoreBonus: 1
   parryScoreMultiplierOnSuccess: 2
   parryMultiplierDuration: 3
   heartRateText: {fileID: 125605341}
   comboText: {fileID: 425332303}
-  comboBonusThreshold: 5
-  comboBonusPoints: 10
+  maxComboMultiplier: 50
+  basePressPoints: 2
 --- !u!224 &1163982454
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1316,15 +1319,14 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 425332302}
+  m_Children: []
   m_Father: {fileID: 287366555}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 1129.796, y: 506.62894}
   m_SizeDelta: {x: 100, y: 100}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_Pivot: {x: 1, y: 1}
 --- !u!223 &1163982456
 Canvas:
   m_ObjectHideFlags: 0
@@ -1461,8 +1463,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -83, y: -90}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: -98, y: -90}
+  m_SizeDelta: {x: 160, y: 38.498}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &1246356523
 MonoBehaviour:
@@ -1497,7 +1499,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Score
+  m_Text: 'Score :'
 --- !u!222 &1246356524
 CanvasRenderer:
   m_ObjectHideFlags: 0

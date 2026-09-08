@@ -220,8 +220,8 @@ public class PlayerController : MonoBehaviour
     public bool OnIncomingAttack(int damage, EnemyController attacker, out bool wasParried)
     {
         wasParried = false;
-        UIManager.Instance?.AddCombo();
-        UIManager.Instance?.ResetCombo();
+        
+        
 
 
         // --- SUCCESSFUL PARRY ---
@@ -240,6 +240,8 @@ public class PlayerController : MonoBehaviour
             }
 
             wasParried = true;
+            
+
 
             // Heart-rate: successful perfect parry
             HeartRate.Instance?.RegisterPerfectParry();
